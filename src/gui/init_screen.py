@@ -192,7 +192,7 @@ class InitializationScreen(ctk.CTkFrame):
         self.chat_display.configure(state="normal")
         self.chat_display.insert("end", f"\n[{label}]\n", f"role_{role}")
         self.chat_display.insert("end", content + "\n", "content")
-        self.chat_display.tag_config(f"role_{role}", foreground=color, font=("", 11, "bold"))
+        self.chat_display.tag_config(f"role_{role}", foreground=color)
         self.chat_display.configure(state="disabled")
         self.chat_display.see("end")
 
