@@ -9,6 +9,20 @@ from src.loop_controller import ManualLoopController
 from src.project_manager import ProjectManager
 
 
+FILE_DISPLAY_NAMES = {
+    "project_config.json":       "프로젝트 설정",
+    "episodes.json":             "에피소드 목록",
+    "chat_history_write.json":   "집필실 대화 기록",
+    "chat_history_setting.json": "설정실 대화 기록",
+    "chat_history_init.json":    "초기화 대화 기록",
+    "temp_draft.json":           "임시 저장",
+    "세계관.md":                 "세계관",
+    "줄거리.md":                 "줄거리",
+    "소설설정.md":               "소설 설정",
+    "story_context.md":          "스토리 흐름",
+    "character_relations.md":    "인물 관계도",
+}
+
 CHAT_ROLES = {
     "user": ("You", "gray70"),
     "editor": ("Editor", "#4A90D9"),
@@ -194,8 +208,9 @@ class InitializationScreen(ctk.CTkFrame):
                 card.grid(row=row_idx, column=0, sticky="ew", pady=2, padx=2)
                 card.grid_columnconfigure(0, weight=1)
 
+                display_name = FILE_DISPLAY_NAMES.get(fname, fname)
                 ctk.CTkLabel(
-                    card, text=fname, anchor="w",
+                    card, text=display_name, anchor="w",
                     font=("Malgun Gothic", 12),
                     wraplength=150
                 ).grid(row=0, column=0, padx=10, pady=(6, 2), sticky="w")
@@ -237,9 +252,11 @@ class InitializationScreen(ctk.CTkFrame):
                     if os.path.isfile(full):
                         files.append(full)
         for i, fpath in enumerate(files):
-            rel = os.path.relpath(fpath, self.project_folder)
+            fname = os.path.basename(fpath)
+            display_name = FILE_DISPLAY_NAMES.get(fname, fname)
             btn = ctk.CTkButton(
-                self.left_file_list, text=rel, anchor="w",
+                self.left_file_list, text=display_name, anchor="w",
+                font=("Malgun Gothic", 12),
                 fg_color="transparent", text_color=("gray10", "gray90"),
                 hover_color=("gray80", "gray30"),
                 command=lambda p=fpath: self._view_file(p),
@@ -494,7 +511,7 @@ class InitializationScreen(ctk.CTkFrame):
     def _view_file(self, path: str):
         fname = os.path.basename(path)
         win = ctk.CTkToplevel(self)
-        win.title(fname)
+        win.title(FILE_DISPLAY_NAMES.get(fname, fname))
         win.geometry("640x560")
         win.grab_set()
 
