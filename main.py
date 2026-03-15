@@ -1,6 +1,12 @@
 import os
 import queue
 import sys
+
+# CrewAI requires OPENAI_API_KEY to be set even when using local Ollama.
+# Set a dummy value to suppress the import error.
+if "OPENAI_API_KEY" not in os.environ:
+    os.environ["OPENAI_API_KEY"] = "NA"
+
 import customtkinter as ctk
 from tkinter import messagebox
 
