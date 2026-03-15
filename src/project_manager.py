@@ -120,6 +120,17 @@ class ProjectManager:
         if os.path.exists(path):
             os.remove(path)
 
+    def save_chat_history(self, project_folder: str, filename: str, history: list):
+        path = os.path.join(project_folder, filename)
+        self._write_json(path, history)
+
+    def load_chat_history(self, project_folder: str, filename: str) -> list:
+        path = os.path.join(project_folder, filename)
+        if not os.path.exists(path):
+            return []
+        with open(path, "r", encoding="utf-8") as f:
+            return json.load(f)
+
     def scan_inbox(self, project_folder: str) -> list[str]:
         inbox_dir = os.path.join(project_folder, "inbox")
         if not os.path.isdir(inbox_dir):

@@ -33,7 +33,7 @@ class InitializationScreen(ctk.CTkFrame):
         self._agent_running = False
 
         self._build_ui()
-        self._check_temp_draft()
+        self._restore_chat_history()
         self._refresh_right_sidebar()
         self._post_system_message(i18n.t("init_welcome"))
 
@@ -214,6 +214,7 @@ class InitializationScreen(ctk.CTkFrame):
         self.user_input.delete("1.0", "end")
         self._post_message("user", text)
         self.chat_history.append({"role": "user", "content": text})
+        self._save_chat_history()
         self._run_editor(text)
 
     def _run_editor(self, user_message: str):
@@ -327,6 +328,7 @@ class InitializationScreen(ctk.CTkFrame):
             content = result["content"]
             self._post_message("editor", content)
             self.chat_history.append({"role": "editor", "content": content})
+            self._save_chat_history()
             self._auto_save_draft("chatting", editor_output=content)
             self._set_busy(False)
 
@@ -339,6 +341,7 @@ class InitializationScreen(ctk.CTkFrame):
             self._post_message("system", f"[{fname}] 로드됨")
             self._post_message("editor", response)
             self.chat_history.append({"role": "editor", "content": response})
+            self._save_chat_history()
 
         elif rtype == "inbox_all_done":
             self._set_busy(False)
@@ -349,6 +352,7 @@ class InitializationScreen(ctk.CTkFrame):
             self.editor_summary = content
             self._post_message("editor", content)
             self.chat_history.append({"role": "editor", "content": content})
+            self._save_chat_history()
             self.stage = "summary_ready"
             self.confirm_gen_btn.configure(state="normal")
             self.coord_done_btn.configure(state="disabled")
@@ -410,6 +414,7 @@ class InitializationScreen(ctk.CTkFrame):
             self.pm.mark_initialized(self.project_folder)
             self.pm.create_backup(self.project_folder)
             self.pm.delete_temp_draft(self.project_folder)
+            self.pm.save_chat_history(self.project_folder, "chat_history_init.json", [])
             self._post_system_message("문서가 저장되었습니다. 백업이 생성되었습니다.")
             self._refresh_left_sidebar()
             self._refresh_right_sidebar()
@@ -517,24 +522,31 @@ class InitializationScreen(ctk.CTkFrame):
         except Exception:
             pass
 
-    def _check_temp_draft(self):
+    def _save_chat_history(self):
+        try:
+            self.pm.save_chat_history(self.project_folder, "chat_history_init.json", self.chat_history)
+        except Exception:
+            pass
+
+    def _restore_chat_history(self):
+        """Load chat history from file and restore UI. Also check temp_draft for stage state."""
+        history = self.pm.load_chat_history(self.project_folder, "chat_history_init.json")
+        if not history:
+            return
+
+        # Restore chat display
+        for msg in history:
+            role = msg.get("role", "user")
+            content = msg.get("content", "")
+            self._post_message(role, content)
+        self.chat_history = history
+
+        # Check temp_draft for stage (summary_ready / recorder_drafted)
         draft = self.pm.load_temp_draft(self.project_folder)
-        if not draft:
-            return
-        if draft.get("room") != "init":
+        if not draft or draft.get("room") != "init":
             return
 
-        if not messagebox.askyesno("Resume Session?",
-                                   f"이전 초기화 세션이 있습니다 ({draft.get('updated_at', '')}).\n계속하시겠습니까?"):
-            self.pm.delete_temp_draft(self.project_folder)
-            return
-
-        # Restore state
         stage = draft.get("stage", "chatting")
-        if draft.get("editor_output"):
-            self.chat_history.append({"role": "editor", "content": draft["editor_output"]})
-            self._post_message("editor", draft["editor_output"])
-
         if stage == "editor_done":
             self.editor_summary = draft.get("editor_output", "")
             self.stage = "summary_ready"
