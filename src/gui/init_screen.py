@@ -139,24 +139,90 @@ class InitializationScreen(ctk.CTkFrame):
     def _refresh_right_sidebar(self):
         for w in self.right_file_list.winfo_children():
             w.destroy()
-        files = self._get_all_project_files()
-        for i, fpath in enumerate(files):
-            rel = os.path.relpath(fpath, self.project_folder)
-            row_frame = ctk.CTkFrame(self.right_file_list, fg_color="transparent")
-            row_frame.grid(row=i, column=0, sticky="ew", pady=1)
-            row_frame.grid_columnconfigure(0, weight=1)
 
-            ctk.CTkLabel(row_frame, text=rel, anchor="w", wraplength=140).grid(row=0, column=0, sticky="w")
-            btn_frame = ctk.CTkFrame(row_frame, fg_color="transparent")
-            btn_frame.grid(row=1, column=0, sticky="w")
+        # Group files by category
+        groups = {
+            "📝 설정 파일": [],
+            "📖 컨텍스트": [],
+            "📚 챕터": [],
+            "📥 Inbox": [],
+            "⚙️ 시스템": [],
+        }
+        # Internal JSON files shown in system group only
+        system_json = {
+            "project_config.json", "episodes.json",
+            "chat_history_write.json", "chat_history_setting.json",
+            "chat_history_init.json", "temp_draft.json",
+        }
+        skip_dirs = {"backup", "__pycache__"}
 
-            ctk.CTkButton(btn_frame, text=i18n.t("view"), width=40, height=20,
-                          command=lambda p=fpath: self._view_file(p)).pack(side="left", padx=2)
-            ctk.CTkButton(btn_frame, text=i18n.t("edit"), width=40, height=20,
-                          command=lambda p=fpath: self._edit_file(p)).pack(side="left", padx=2)
-            ctk.CTkButton(btn_frame, text=i18n.t("delete"), width=40, height=20,
-                          fg_color="#E74C3C", hover_color="#C0392B",
-                          command=lambda p=fpath: self._delete_file(p)).pack(side="left", padx=2)
+        for root, dirs, files in os.walk(self.project_folder):
+            dirs[:] = [d for d in dirs if d not in skip_dirs]
+            folder = os.path.relpath(root, self.project_folder)
+            for f in sorted(files):
+                fpath = os.path.join(root, f)
+                if folder == "settings":
+                    groups["📝 설정 파일"].append(fpath)
+                elif folder == "context":
+                    groups["📖 컨텍스트"].append(fpath)
+                elif folder == "chapters":
+                    groups["📚 챕터"].append(fpath)
+                elif folder == "inbox":
+                    groups["📥 Inbox"].append(fpath)
+                elif f in system_json:
+                    groups["⚙️ 시스템"].append(fpath)
+                # Skip other files at root level that aren't categorized
+
+        row_idx = 0
+        for group_name, files in groups.items():
+            if not files:
+                continue
+            # Section header
+            header = ctk.CTkLabel(
+                self.right_file_list, text=group_name,
+                font=("Malgun Gothic", 11, "bold"),
+                text_color=("gray40", "gray60"), anchor="w"
+            )
+            header.grid(row=row_idx, column=0, sticky="ew", padx=6, pady=(10, 2))
+            row_idx += 1
+
+            for fpath in files:
+                fname = os.path.basename(fpath)
+                is_system = fname in system_json
+                card = ctk.CTkFrame(self.right_file_list, corner_radius=6,
+                                    fg_color=("gray88", "gray22"))
+                card.grid(row=row_idx, column=0, sticky="ew", pady=2, padx=2)
+                card.grid_columnconfigure(0, weight=1)
+
+                ctk.CTkLabel(
+                    card, text=fname, anchor="w",
+                    font=("Malgun Gothic", 12),
+                    wraplength=150
+                ).grid(row=0, column=0, padx=10, pady=(6, 2), sticky="w")
+
+                btn_frame = ctk.CTkFrame(card, fg_color="transparent")
+                btn_frame.grid(row=1, column=0, padx=6, pady=(0, 6), sticky="w")
+
+                ctk.CTkButton(
+                    btn_frame, text=i18n.t("view"), width=44, height=24,
+                    font=("Malgun Gothic", 11), corner_radius=4,
+                    command=lambda p=fpath: self._view_file(p)
+                ).pack(side="left", padx=(0, 4))
+
+                if not is_system:
+                    ctk.CTkButton(
+                        btn_frame, text=i18n.t("edit"), width=44, height=24,
+                        font=("Malgun Gothic", 11), corner_radius=4,
+                        command=lambda p=fpath: self._edit_file(p)
+                    ).pack(side="left", padx=(0, 4))
+                    ctk.CTkButton(
+                        btn_frame, text=i18n.t("delete"), width=44, height=24,
+                        font=("Malgun Gothic", 11), corner_radius=4,
+                        fg_color="#C0392B", hover_color="#96281B",
+                        command=lambda p=fpath: self._delete_file(p)
+                    ).pack(side="left")
+
+                row_idx += 1
 
     def _refresh_left_sidebar(self):
         for w in self.left_file_list.winfo_children():
@@ -426,17 +492,155 @@ class InitializationScreen(ctk.CTkFrame):
     # --- File management ---
 
     def _view_file(self, path: str):
+        fname = os.path.basename(path)
         win = ctk.CTkToplevel(self)
-        win.title(os.path.basename(path))
-        win.geometry("600x500")
-        text = ctk.CTkTextbox(win, state="normal")
-        text.pack(fill="both", expand=True, padx=8, pady=8)
+        win.title(fname)
+        win.geometry("640x560")
+        win.grab_set()
+
+        if path.endswith(".json"):
+            self._view_json_file(win, path, fname)
+        else:
+            text = ctk.CTkTextbox(win, state="normal", font=("Malgun Gothic", 13), wrap="word")
+            text.pack(fill="both", expand=True, padx=12, pady=12)
+            try:
+                with open(path, "r", encoding="utf-8") as f:
+                    text.insert("end", f.read())
+            except Exception as e:
+                text.insert("end", f"읽기 오류: {e}")
+            text.configure(state="disabled")
+
+    def _view_json_file(self, win: ctk.CTkToplevel, path: str, fname: str):
+        import json as _json
         try:
             with open(path, "r", encoding="utf-8") as f:
-                content = f.read()
-            text.insert("end", content)
+                data = _json.load(f)
         except Exception as e:
-            text.insert("end", f"Could not read file: {e}")
+            ctk.CTkLabel(win, text=f"파일 읽기 오류: {e}", text_color="red").pack(pady=20)
+            return
+
+        scroll = ctk.CTkScrollableFrame(win, fg_color="transparent")
+        scroll.pack(fill="both", expand=True, padx=12, pady=12)
+        scroll.grid_columnconfigure(0, weight=1)
+
+        if fname == "project_config.json":
+            self._render_project_config(scroll, data)
+        elif fname == "episodes.json":
+            self._render_episodes(scroll, data)
+        elif fname in ("chat_history_write.json", "chat_history_setting.json", "chat_history_init.json"):
+            self._render_chat_history(scroll, data)
+        elif fname == "temp_draft.json":
+            self._render_temp_draft(scroll, data)
+        else:
+            # Generic pretty print
+            self._render_generic_json(scroll, data)
+
+    def _render_section(self, parent, row: int, title: str, value: str, color: str = None):
+        ctk.CTkLabel(
+            parent, text=title, font=("Malgun Gothic", 11, "bold"),
+            text_color=("gray40", "gray60"), anchor="w"
+        ).grid(row=row * 2, column=0, sticky="w", pady=(10, 0))
+        ctk.CTkLabel(
+            parent, text=value or "—", font=("Malgun Gothic", 13),
+            anchor="w", wraplength=550, justify="left",
+            text_color=color or ("gray10", "gray90")
+        ).grid(row=row * 2 + 1, column=0, sticky="w", padx=8)
+
+    def _render_project_config(self, parent, data: dict):
+        ctk.CTkLabel(parent, text="프로젝트 설정", font=("Malgun Gothic", 15, "bold")).grid(
+            row=0, column=0, sticky="w", pady=(0, 8)
+        )
+        rows = [
+            ("LLM 모델", data.get("llm_model", "—")),
+            ("초기화 완료", "예 ✅" if data.get("initialized") else "아니오 ⏳"),
+            ("현재 챕터", str(data.get("current_chapter", 1))),
+            ("활성 에피소드", data.get("active_episode_id") or "없음"),
+        ]
+        for i, (label, val) in enumerate(rows):
+            self._render_section(parent, i + 1, label, val)
+
+    def _render_episodes(self, parent, data: dict):
+        episodes = data.get("episodes", [])
+        ctk.CTkLabel(parent, text=f"에피소드 목록 ({len(episodes)}개)", font=("Malgun Gothic", 15, "bold")).grid(
+            row=0, column=0, sticky="w", pady=(0, 8)
+        )
+        if not episodes:
+            ctk.CTkLabel(parent, text="등록된 에피소드가 없습니다.", text_color="gray").grid(
+                row=1, column=0, sticky="w", pady=8
+            )
+            return
+        status_icon = {"planned": "📋", "in_progress": "✏️", "completed": "✅", "on_hold": "⏸️"}
+        for i, ep in enumerate(episodes):
+            card = ctk.CTkFrame(parent, corner_radius=8, fg_color=("gray88", "gray22"))
+            card.grid(row=i + 1, column=0, sticky="ew", pady=4)
+            card.grid_columnconfigure(0, weight=1)
+            icon = status_icon.get(ep.get("status", ""), "📋")
+            title = f"{icon}  {ep.get('title', '제목 없음')}"
+            ctk.CTkLabel(card, text=title, font=("Malgun Gothic", 13, "bold"), anchor="w").grid(
+                row=0, column=0, padx=12, pady=(8, 2), sticky="w"
+            )
+            if ep.get("description"):
+                ctk.CTkLabel(card, text=ep["description"], font=("Malgun Gothic", 12),
+                             text_color="gray", anchor="w", wraplength=500).grid(
+                    row=1, column=0, padx=12, pady=(0, 4), sticky="w"
+                )
+            chapters = ep.get("chapters", [])
+            chap_text = f"챕터: {', '.join(str(c) for c in chapters)}" if chapters else "챕터 없음"
+            ctk.CTkLabel(card, text=chap_text, font=("Malgun Gothic", 11),
+                         text_color="gray", anchor="w").grid(
+                row=2, column=0, padx=12, pady=(0, 8), sticky="w"
+            )
+
+    def _render_chat_history(self, parent, data: list):
+        ctk.CTkLabel(parent, text=f"대화 기록 ({len(data)}개 메시지)", font=("Malgun Gothic", 15, "bold")).grid(
+            row=0, column=0, sticky="w", pady=(0, 8)
+        )
+        if not data:
+            ctk.CTkLabel(parent, text="대화 기록이 없습니다.", text_color="gray").grid(
+                row=1, column=0, sticky="w", pady=8
+            )
+            return
+        role_label = {"user": "나", "editor": "Editor", "recorder": "Recorder", "system": "System"}
+        role_color = {"user": ("gray20", "gray80"), "editor": "#4A90D9",
+                      "recorder": "#7B68EE", "system": "gray"}
+        for i, msg in enumerate(data):
+            role = msg.get("role", "user")
+            label = role_label.get(role, role)
+            color = role_color.get(role, "gray")
+            card = ctk.CTkFrame(parent, corner_radius=6, fg_color=("gray88", "gray22"))
+            card.grid(row=i + 1, column=0, sticky="ew", pady=3)
+            card.grid_columnconfigure(0, weight=1)
+            ctk.CTkLabel(card, text=label, font=("Malgun Gothic", 11, "bold"),
+                         text_color=color, anchor="w").grid(row=0, column=0, padx=10, pady=(6, 0), sticky="w")
+            ctk.CTkLabel(card, text=msg.get("content", ""), font=("Malgun Gothic", 12),
+                         anchor="w", wraplength=520, justify="left").grid(
+                row=1, column=0, padx=10, pady=(2, 8), sticky="w"
+            )
+
+    def _render_temp_draft(self, parent, data: dict):
+        ctk.CTkLabel(parent, text="임시 저장 상태", font=("Malgun Gothic", 15, "bold")).grid(
+            row=0, column=0, sticky="w", pady=(0, 8)
+        )
+        stage_label = {
+            "chatting": "대화 중",
+            "writer_done": "Writer 완료",
+            "editor_reviewed": "Editor 검토 완료",
+            "recorder_drafted": "Recorder 초안 생성",
+            "editor_done": "Editor 요약 완료",
+        }
+        rows = [
+            ("저장 시각", data.get("updated_at", "—")),
+            ("현재 단계", stage_label.get(data.get("stage", ""), data.get("stage", "—"))),
+            ("방", {"writing": "집필실", "init": "초기화", "setting": "설정실"}.get(data.get("room", ""), "—")),
+        ]
+        for i, (label, val) in enumerate(rows):
+            self._render_section(parent, i + 1, label, val)
+
+    def _render_generic_json(self, parent, data):
+        import json as _json
+        text = ctk.CTkTextbox(parent, font=("Malgun Gothic", 12), wrap="word", state="normal")
+        text.grid(row=0, column=0, sticky="nsew")
+        text.insert("end", _json.dumps(data, ensure_ascii=False, indent=2))
         text.configure(state="disabled")
 
     def _edit_file(self, path: str):
