@@ -181,9 +181,155 @@ class ManualLoopController:
 
         return "\n\n---\n\n".join(responses), was_split
 
-    def run_writing_loop(self, *args, **kwargs):
-        """Stub for Phase 2."""
-        raise NotImplementedError("Writing loop is not implemented in Phase 1.")
+    def run_writer(self, user_input: str, chapter_number: int, project_folder: str) -> tuple[str, str]:
+        logger.info("[Writer] %d화 집필 시작", chapter_number)
+        llm = self._get_llm()
+        context = self.pm.read_context_files(project_folder)
+        agent = self.factory.create_writer_agent(llm, context)
+        task_description = (
+            f"지금은 {chapter_number}화를 작성할 차례입니다.\n\n"
+            f"사용자 지시사항:\n{user_input}\n\n"
+            "위의 지시사항과 프로젝트 설정을 바탕으로 이번 챕터의 소설 본문을 작성하세요.\n"
+            "작성 후 반드시 아래 형식으로 출력하세요:\n\n"
+            "=== 소설 본문 ===\n"
+            "(본문 내용)\n\n"
+            "=== 설계 의도 ===\n"
+            "확정된 사실:\n"
+            "- (이번 챕터에서 확정된 사실들)\n\n"
+            "심은 복선:\n"
+            "- (의도적으로 심은 복선, 없으면 '없음')\n\n"
+            "설정 변경사항:\n"
+            "- (기존 설정과 달라진 점, 없으면 '없음')\n"
+        )
+        raw = _run_crew(agent, task_description)
+        body, intent = _parse_writer_output(raw)
+        logger.info("[Writer] %d화 집필 완료 (본문 %d자)", chapter_number, len(body))
+        return body, intent
+
+    def run_editor_review(self, body_text: str, design_intent: str, user_input: str,
+                          project_folder: str, is_revision: bool = False) -> str:
+        logger.info("[Editor] 집필실 검토 시작 (수정 라운드: %s)", is_revision)
+        llm = self._get_llm()
+        context = self.pm.read_context_files(project_folder)
+        agent = self.factory.create_editor_agent(llm, context, mode="writing")
+        if is_revision:
+            task_description = (
+                f"수정된 소설 본문:\n{body_text}\n\n"
+                f"Writer 설계 의도:\n{design_intent}\n\n"
+                "이전에 지적한 문제들이 해결되었는지 확인하고, 남은 중요 문제가 있다면 번호와 함께 보고하세요. "
+                "문제가 없으면 '✅ 통과'라고 명시하세요. 한국어로 작성하세요."
+            )
+        else:
+            task_description = (
+                f"사용자 집필 지시사항:\n{user_input}\n\n"
+                f"Writer가 작성한 소설 본문:\n{body_text}\n\n"
+                f"Writer의 설계 의도:\n{design_intent}\n\n"
+                "위 7가지 체크리스트를 기준으로 본문을 검토하세요. "
+                "문제가 있는 항목은 '⚠️ N. 내용'으로, 문제없는 항목은 '✅ N. 내용'으로 출력하세요. "
+                "한국어로 작성하세요."
+            )
+        return _run_crew(agent, task_description)
+
+    def run_writer_revision(self, body_text: str, design_intent: str, editor_review: str,
+                            user_feedback: str, project_folder: str) -> tuple[str, str]:
+        logger.info("[Writer] 수정 시작")
+        llm = self._get_llm()
+        context = self.pm.read_context_files(project_folder)
+        agent = self.factory.create_writer_agent(llm, context)
+        task_description = (
+            f"이전에 작성한 소설 본문:\n{body_text}\n\n"
+            f"설계 의도:\n{design_intent}\n\n"
+            f"Editor 검토 결과:\n{editor_review}\n\n"
+            f"사용자 수정 지시:\n{user_feedback}\n\n"
+            "위 피드백을 반영하여 소설 본문을 수정하세요. 아래 형식으로 출력하세요:\n\n"
+            "=== 소설 본문 ===\n"
+            "(수정된 본문)\n\n"
+            "=== 설계 의도 ===\n"
+            "확정된 사실:\n- ...\n\n심은 복선:\n- ...\n\n설정 변경사항:\n- ..."
+        )
+        raw = _run_crew(agent, task_description)
+        body, intent = _parse_writer_output(raw)
+        logger.info("[Writer] 수정 완료 (본문 %d자)", len(body))
+        return body, intent
+
+    def run_writing_recorder(self, body_text: str, design_intent: str,
+                             chapter_number: int, project_folder: str) -> dict:
+        logger.info("[Recorder] %d화 문서화 시작", chapter_number)
+        llm = self._get_llm()
+        context = self.pm.read_context_files(project_folder)
+        agent = self.factory.create_recorder_agent(llm, context)
+        task_description = (
+            f"{chapter_number}화 소설 본문:\n{body_text}\n\n"
+            f"Writer 설계 의도:\n{design_intent}\n\n"
+            "위 내용을 바탕으로 컨텍스트 파일 두 개를 전면 재작성하세요. "
+            "기존 내용에 이번 챕터의 정보를 추가하여 전체를 재작성합니다. "
+            "반드시 아래 형식으로 출력하세요:\n\n"
+            "=== story_context.md ===\n"
+            "[복선 목록]\n"
+            "- n화: (복선 내용) (미해결/해결됨)\n\n"
+            "[스토리 흐름]\n"
+            "- 1화: (핵심 사건 요약)\n\n"
+            "[확정된 설정 변경]\n"
+            "- (변경된 설정, 없으면 '없음')\n\n"
+            "=== character_relations.md ===\n"
+            "[캐릭터명] (n화 기준)\n"
+            "✅ 알고 있음: ...\n"
+            "❌ 모르고 있음: ...\n"
+            "🤔 의심/추측 중: ...\n\n"
+            "모든 내용은 한국어로 작성하세요."
+        )
+        raw = _run_crew(agent, task_description)
+        parsed = _parse_writing_recorder_output(raw)
+        logger.info("[Recorder] %d화 문서화 완료", chapter_number)
+        return {
+            "chapter_number": chapter_number,
+            "chapter_text": body_text,
+            **parsed,
+        }
+
+
+def _parse_writer_output(raw: str) -> tuple[str, str]:
+    """Parse Writer output into (body_text, design_intent)."""
+    body_marker = "=== 소설 본문 ==="
+    intent_marker = "=== 설계 의도 ==="
+    body_start = raw.find(body_marker)
+    intent_start = raw.find(intent_marker)
+    if body_start == -1 and intent_start == -1:
+        return raw.strip(), ""
+    if body_start != -1 and intent_start != -1:
+        body = raw[body_start + len(body_marker):intent_start].strip()
+        intent = raw[intent_start + len(intent_marker):].strip()
+    elif body_start != -1:
+        body = raw[body_start + len(body_marker):].strip()
+        intent = ""
+    else:
+        body = raw[:intent_start].strip()
+        intent = raw[intent_start + len(intent_marker):].strip()
+    return body, intent
+
+
+def _parse_writing_recorder_output(raw: str) -> dict:
+    """Parse Recorder output for Writing Room into {story_context, character_relations}."""
+    markers = {
+        "=== story_context.md ===": "story_context",
+        "=== character_relations.md ===": "character_relations",
+    }
+    order = list(markers.keys())
+    result = {"story_context": "", "character_relations": ""}
+    for i, marker in enumerate(order):
+        key = markers[marker]
+        start = raw.find(marker)
+        if start == -1:
+            continue
+        start += len(marker)
+        end = len(raw)
+        for next_marker in order[i + 1:]:
+            pos = raw.find(next_marker, start)
+            if pos != -1:
+                end = pos
+                break
+        result[key] = raw[start:end].strip()
+    return result
 
 
 def _parse_recorder_output(raw: str) -> dict:

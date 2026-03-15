@@ -213,6 +213,8 @@ class InitializationScreen(ctk.CTkFrame):
             "chat_history_write.json", "chat_history_setting.json",
             "chat_history_init.json", "temp_draft.json",
         }
+        # Only project_config.json is truly read-only (editing it directly could break state)
+        readonly_files = {"project_config.json"}
         skip_dirs = {"backup", "__pycache__"}
 
         for root, dirs, files in os.walk(self.project_folder):
@@ -271,7 +273,7 @@ class InitializationScreen(ctk.CTkFrame):
                     command=lambda p=fpath: self._view_file(p)
                 ).pack(side="left", padx=(0, 4))
 
-                if not is_system:
+                if fname not in readonly_files:
                     ctk.CTkButton(
                         btn_row, text=i18n.t("edit"), width=44, height=22,
                         **th.btn_ghost({"font": th.FONT_SMALL, "corner_radius": th.RADIUS_SM}),
@@ -586,6 +588,7 @@ class InitializationScreen(ctk.CTkFrame):
         win.configure(fg_color=th.BG)
         win.grab_set()
 
+        readonly_files = {"project_config.json"}
         if path.endswith(".json"):
             self._view_json_file(win, path, fname)
         else:
@@ -594,13 +597,30 @@ class InitializationScreen(ctk.CTkFrame):
                 fg_color=th.SURFACE, text_color=th.TEXT,
                 border_width=1, border_color=th.BORDER, corner_radius=th.RADIUS_MD
             )
-            text.pack(fill="both", expand=True, padx=th.PAD, pady=th.PAD)
+            text.pack(fill="both", expand=True, padx=th.PAD, pady=(th.PAD, 0))
             try:
                 with open(path, "r", encoding="utf-8") as f:
                     text.insert("end", f.read())
             except Exception as e:
                 text.insert("end", f"읽기 오류: {e}")
-            text.configure(state="disabled")
+            if fname in readonly_files:
+                text.configure(state="disabled")
+            else:
+                def _save():
+                    try:
+                        with open(path, "w", encoding="utf-8") as f:
+                            f.write(text.get("1.0", "end"))
+                        win.destroy()
+                        self._post_system_message(f"파일 저장됨: {os.path.relpath(path, self.project_folder)}")
+                        self._refresh_right_sidebar()
+                        self._refresh_left_sidebar()
+                    except Exception as e:
+                        messagebox.showerror("Error", str(e))
+                ctk.CTkButton(
+                    win, text="저장", height=34,
+                    **th.btn_primary({"font": th.FONT_SMALL}),
+                    command=_save
+                ).pack(pady=th.PAD_SM, padx=th.PAD, anchor="e")
 
     def _view_json_file(self, win: ctk.CTkToplevel, path: str, fname: str):
         import json as _json

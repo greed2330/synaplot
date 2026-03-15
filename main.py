@@ -20,6 +20,7 @@ from src.gui import theme as th
 from src.project_manager import ProjectManager
 from src.gui.project_screen import ProjectSelectionScreen, PROJECTS_DIR
 from src.gui.init_screen import InitializationScreen
+from src.gui.writing_screen import WritingScreen
 
 ctk.set_appearance_mode("dark")
 ctk.set_default_color_theme("blue")
@@ -147,7 +148,7 @@ class App(ctk.CTk):
             messagebox.showerror("오류", f"프로젝트 로드 실패: {e}")
             return
         if config.get("initialized"):
-            messagebox.showinfo("집필실", "집필실은 Phase 2에서 구현됩니다.")
+            self._show_writing_screen(project_folder)
         else:
             self._show_init_screen(project_folder)
 
@@ -172,13 +173,23 @@ class App(ctk.CTk):
         self.current_screen = screen
         self.current_init_screen = screen
 
-    def _on_init_complete(self, project_folder: str):
+    def _show_writing_screen(self, project_folder: str):
+        self._clear_screen()
         project_name = self.pm.get_project_name(project_folder)
-        messagebox.showinfo(
-            "초기화 완료",
-            f"'{project_name}' 초기화가 완료되었습니다.\n집필실은 Phase 2에서 구현됩니다."
+        self.title(f"{i18n.t('app_title')} — {project_name}")
+        self._title_label.configure(text=f"{i18n.t('app_title')}  ·  {project_name}")
+        self._back_btn.grid()
+        screen = WritingScreen(
+            self._content,
+            project_folder=project_folder,
+            result_queue=self.result_queue,
         )
-        self._show_project_selection()
+        screen.grid(row=0, column=0, sticky="nsew")
+        self.current_screen = screen
+        self.current_init_screen = screen  # result_queue 폴링 공유
+
+    def _on_init_complete(self, project_folder: str):
+        self._show_writing_screen(project_folder)
 
 
 def main():

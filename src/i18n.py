@@ -40,6 +40,22 @@ STRINGS = {
         "edit": "편집",
         "delete": "삭제",
         "init_welcome": "Editor가 초기화를 시작합니다. 소설에 대한 아이디어를 자유롭게 이야기해 주세요!",
+
+        # Writing screen
+        "writing_room": "집필실",
+        "chapter_label": "{n}화",
+        "episode_label": "현재 에피소드",
+        "no_episode": "(없음)",
+        "writing_welcome": "집필실입니다. 이번 챕터의 방향을 자유롭게 이야기해 주세요.",
+        "approve": "승인",
+        "request_revision": "수정 요청",
+        "ignore_approve": "무시하고 승인",
+        "writer_running": "Writer가 집필 중...",
+        "editor_running": "Editor가 검토 중...",
+        "recorder_running": "Recorder가 문서화 중...",
+        "revision_running": "Writer가 수정 중...",
+        "revision_max_warning": "2회 수정 후에도 문제가 남아있습니다. 무시하고 승인하거나 직접 편집하세요.",
+        "chapter_saved": "{n}화가 저장되었습니다. 백업이 생성되었습니다.",
     },
     "en": {
         # App
@@ -79,6 +95,22 @@ STRINGS = {
         "edit": "Edit",
         "delete": "Del",
         "init_welcome": "Editor is starting initialization. Feel free to share your novel ideas!",
+
+        # Writing screen
+        "writing_room": "Writing Room",
+        "chapter_label": "Chapter {n}",
+        "episode_label": "Current Episode",
+        "no_episode": "(none)",
+        "writing_welcome": "Welcome to the Writing Room. Tell the Writer what direction to take this chapter.",
+        "approve": "Approve",
+        "request_revision": "Request Revision",
+        "ignore_approve": "Ignore & Approve",
+        "writer_running": "Writer is writing...",
+        "editor_running": "Editor is reviewing...",
+        "recorder_running": "Recorder is documenting...",
+        "revision_running": "Writer is revising...",
+        "revision_max_warning": "Issues remain after 2 revisions. Ignore and approve, or edit manually.",
+        "chapter_saved": "Chapter {n} saved. Backup created.",
     },
 }
 

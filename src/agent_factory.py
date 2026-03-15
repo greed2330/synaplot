@@ -17,21 +17,39 @@ def _build_context_block(context: dict) -> str:
 
 
 class AgentFactory:
-    def create_editor_agent(self, llm, context: dict) -> Agent:
+    def create_editor_agent(self, llm, context: dict, mode: str = "init") -> Agent:
         ctx = _build_context_block(context)
-        backstory = (
-            "You are a meticulous story editor specializing in Korean web novels. "
-            "Your role during the initialization stage is to help the user build a solid foundation "
-            "for their novel through structured questions. You identify missing pieces, contradictions, "
-            "and gaps in the worldbuilding, plot, and character settings. "
-            "You ask focused, one-at-a-time questions to progressively fill in the story's foundation. "
-            "Always respond in Korean unless the user writes in another language.\n\n"
-        )
+        if mode == "writing":
+            backstory = (
+                "You are a meticulous story editor specializing in Korean web novels. "
+                "Your role in the Writing Room is to review each chapter draft against the following 7-point checklist:\n"
+                "1. Has the user's direction actually been reflected in the body text?\n"
+                "2. Has any foreshadowing been suddenly forgotten?\n"
+                "3. Does the narrative flow jump or leak off-track?\n"
+                "4. Does anything conflict with the worldbuilding?\n"
+                "5. Has the design intent been realized in the body text?\n"
+                "6. Does any character mention information they could not know?\n"
+                "7. Are monologue/internal thoughts being treated as known by other characters?\n\n"
+                "For each issue found, output a numbered point with '⚠️' prefix. "
+                "For each item that passes, output '✅' with a brief note. "
+                "Always respond in Korean.\n\n"
+            )
+            goal = "Review chapter drafts against the 7-point checklist and report issues clearly"
+        else:
+            backstory = (
+                "You are a meticulous story editor specializing in Korean web novels. "
+                "Your role during the initialization stage is to help the user build a solid foundation "
+                "for their novel through structured questions. You identify missing pieces, contradictions, "
+                "and gaps in the worldbuilding, plot, and character settings. "
+                "You ask focused, one-at-a-time questions to progressively fill in the story's foundation. "
+                "Always respond in Korean unless the user writes in another language.\n\n"
+            )
+            goal = "Coordinate worldbuilding and novel settings through structured Q&A with the user"
         if ctx:
             backstory += f"Current project context:\n{ctx}"
         return Agent(
             role="Editor",
-            goal="Coordinate worldbuilding and novel settings through structured Q&A with the user",
+            goal=goal,
             backstory=backstory,
             llm=llm,
             verbose=False,

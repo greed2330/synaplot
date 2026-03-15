@@ -11,7 +11,7 @@
 |-------|-------------|--------|
 | Phase 1 | Project foundation + Initialization Stage | ✅ Complete |
 | Phase 1.5 | UI 개선 (디자인, 내비게이션, i18n, 프로젝트 삭제) | ✅ Complete |
-| Phase 2 | Writing Room | ⬜ Not Started |
+| Phase 2 | Writing Room | ✅ Complete |
 | Phase 3 | Settings Organization Room | ⬜ Not Started |
 | Phase 4 | Episode Management Room | ⬜ Not Started |
 | Phase 5 | Polish + PyInstaller build | ⬜ Not Started |
@@ -92,26 +92,28 @@
 ## Phase 2 — Writing Room
 
 ### Loop Controller
-- [ ] `run_writing_loop(user_input, chat_history, project_folder)` → full Writer→Editor→(revision)→Recorder flow
-- [ ] Writer agent: body text + structured design-intent output
-- [ ] Editor agent: 7-point checklist review
-- [ ] Max 2 revision rounds enforcement
-- [ ] Guidance after 2 failed rounds (Scenario 4)
+- [x] `run_writer()` — Writer agent: body text + structured design-intent output
+- [x] `run_editor_review()` — Editor: 7-point checklist (first pass) / pass-fail (revision)
+- [x] `run_writer_revision()` — Writer revision with editor + user feedback
+- [x] `run_writing_recorder()` — Recorder: story_context.md + character_relations.md rewrite
+- [x] Max 2 revision rounds enforcement + "무시하고 승인" guidance (Scenario 4)
+- [x] `_parse_writer_output()` — section marker parsing
+- [x] `_parse_writing_recorder_output()` — section marker parsing
 
 ### GUI — Writing Room (3-panel layout)
-- [ ] Room selector tabs: [Writing Room] / [Settings Room] / [Episode Management]
-- [ ] Top bar: current episode/chapter display
-- [ ] Top bar: shared settings button (model selection)
-- [ ] Left sidebar: settings file list + active episode display
-- [ ] Center: chat area (Writer / Editor / Recorder messages)
-- [ ] Center: [Approve] / [Request Revision] buttons
-- [ ] Center: Recorder review dialog ([Confirm Save] / [Edit Manually Then Save])
-- [ ] Right sidebar: file management (same as init screen)
-- [ ] Chapter file save (`chapters/N화.txt`)
-- [ ] `story_context.md` full rewrite after chapter approval
-- [ ] `character_relations.md` full rewrite after chapter approval
-- [ ] `chat_history_write.json` persistence
-- [ ] `temp_draft.json` auto-save during writing pipeline
+- [x] Left sidebar: settings/context file list + current chapter/episode display
+- [x] Center: chat area (Writer / Editor / System messages with role colors)
+- [x] Center: user input (Ctrl+Enter to send)
+- [x] Center: [Approve] / [Request Revision] / [무시하고 승인] buttons
+- [x] Center: Recorder review dialog ([저장] / [취소])
+- [x] Right sidebar: file management (View / Edit / Delete — same as init screen)
+- [x] Chapter file save (`chapters/N화.txt`)
+- [x] `story_context.md` full rewrite after chapter approval
+- [x] `character_relations.md` full rewrite after chapter approval
+- [x] `chat_history_write.json` persistence
+- [x] `temp_draft.json` auto-save during writing pipeline
+- [x] Session restore from temp_draft on relaunch
+- [ ] Room selector tabs: [집필실] / [설정실] / [에피소드 관리] — Phase 3/4에서 추가
 
 ---
 
@@ -139,6 +141,7 @@
 - [ ] Assign active episode → saved to `project_config.json`
 - [ ] Chapter-to-episode assignment (uniqueness warning, Scenario: move chapter)
 - [ ] Chapter delete → context inconsistency warning + backup restore suggestion
+- [ ] 우측 사이드바에서 `episodes.json` Edit 버튼 제거 → 에피소드 관리 화면에서만 편집 가능하도록
 
 ---
 
