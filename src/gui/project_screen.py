@@ -78,7 +78,7 @@ class ProjectSelectionScreen(ctk.CTkFrame):
         self._refresh_project_list()
 
         # ── Right: create form ──────────────────────────────────────────────
-        right = ctk.CTkFrame(self, **th.card(), corner_radius=th.RADIUS_LG)
+        right = ctk.CTkFrame(self, **th.card())
         right.grid(row=1, column=1, sticky="nsew", padx=(8, th.PAD), pady=th.PAD)
         right.grid_columnconfigure(0, weight=1)
 
@@ -132,8 +132,7 @@ class ProjectSelectionScreen(ctk.CTkFrame):
             initialized = False
 
         # Card
-        row_card = ctk.CTkFrame(self.project_scroll, **th.card(),
-                                corner_radius=th.RADIUS_LG)
+        row_card = ctk.CTkFrame(self.project_scroll, **th.card())
         row_card.grid(row=idx, column=0, sticky="ew", pady=(0, th.PAD_SM))
         row_card.grid_columnconfigure(0, weight=1)
 

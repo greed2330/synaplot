@@ -671,7 +671,7 @@ class InitializationScreen(ctk.CTkFrame):
             "completed": "완료", "on_hold": "보류"
         }
         for i, ep in enumerate(episodes):
-            ep_card = ctk.CTkFrame(parent, **th.card(), corner_radius=th.RADIUS_MD)
+            ep_card = ctk.CTkFrame(parent, **th.card())
             ep_card.grid(row=i + 1, column=0, sticky="ew", pady=4)
             ep_card.grid_columnconfigure(0, weight=1)
             status_str = status_label_map.get(ep.get("status", ""), ep.get("status", ""))
@@ -710,7 +710,7 @@ class InitializationScreen(ctk.CTkFrame):
             role = msg.get("role", "user")
             label = role_label.get(role, role)
             color = role_color.get(role, th.TEXT2)
-            msg_card = ctk.CTkFrame(parent, **th.card(), corner_radius=th.RADIUS_SM)
+            msg_card = ctk.CTkFrame(parent, **th.card())
             msg_card.grid(row=i + 1, column=0, sticky="ew", pady=3)
             msg_card.grid_columnconfigure(0, weight=1)
             ctk.CTkLabel(msg_card, text=label, font=th.FONT_SMALL,
