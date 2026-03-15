@@ -4,6 +4,7 @@ import threading
 import customtkinter as ctk
 from tkinter import messagebox, simpledialog
 
+from src import i18n
 from src.loop_controller import ManualLoopController
 from src.project_manager import ProjectManager
 
@@ -34,7 +35,7 @@ class InitializationScreen(ctk.CTkFrame):
         self._build_ui()
         self._check_temp_draft()
         self._refresh_right_sidebar()
-        self._post_system_message("Editor가 초기화를 시작합니다. 소설에 대한 아이디어를 자유롭게 이야기해 주세요!")
+        self._post_system_message(i18n.t("init_welcome"))
 
     def _build_ui(self):
         self.grid_columnconfigure(0, weight=0)
@@ -56,7 +57,7 @@ class InitializationScreen(ctk.CTkFrame):
         frame.grid_rowconfigure(1, weight=1)
         frame.grid_columnconfigure(0, weight=1)
 
-        ctk.CTkLabel(frame, text="Settings Files", font=ctk.CTkFont(weight="bold")).grid(
+        ctk.CTkLabel(frame, text=i18n.t("settings_files"), font=ctk.CTkFont(family="Malgun Gothic", size=13, weight="bold")).grid(
             row=0, column=0, pady=(12, 4), padx=8
         )
         self.left_file_list = ctk.CTkScrollableFrame(frame)
@@ -64,7 +65,8 @@ class InitializationScreen(ctk.CTkFrame):
         self.left_file_list.grid_columnconfigure(0, weight=1)
 
         project_name = self.pm.get_project_name(self.project_folder)
-        ctk.CTkLabel(frame, text=f"Project:\n{project_name}", text_color="gray", wraplength=180).grid(
+        ctk.CTkLabel(frame, text=i18n.t("project_label") + ":\n" + project_name, text_color="gray", wraplength=180,
+                     font=ctk.CTkFont(family="Malgun Gothic", size=13)).grid(
             row=2, column=0, pady=(0, 12), padx=8
         )
 
@@ -75,7 +77,8 @@ class InitializationScreen(ctk.CTkFrame):
         frame.grid_columnconfigure(0, weight=1)
 
         # Chat display
-        self.chat_display = ctk.CTkTextbox(frame, state="disabled", wrap="word")
+        self.chat_display = ctk.CTkTextbox(frame, state="disabled", wrap="word",
+                                           font=ctk.CTkFont(family="Malgun Gothic", size=13))
         self.chat_display.grid(row=0, column=0, sticky="nsew", padx=8, pady=(8, 4))
 
         # Input area
@@ -83,29 +86,30 @@ class InitializationScreen(ctk.CTkFrame):
         input_frame.grid(row=1, column=0, sticky="ew", padx=8, pady=(0, 4))
         input_frame.grid_columnconfigure(0, weight=1)
 
-        self.user_input = ctk.CTkTextbox(input_frame, height=80, wrap="word")
+        self.user_input = ctk.CTkTextbox(input_frame, height=80, wrap="word",
+                                         font=ctk.CTkFont(family="Malgun Gothic", size=13))
         self.user_input.grid(row=0, column=0, sticky="ew", columnspan=2)
         self.user_input.bind("<Control-Return>", self._on_send)
 
-        send_btn = ctk.CTkButton(input_frame, text="Send (Ctrl+Enter)", width=140, command=self._on_send)
+        send_btn = ctk.CTkButton(input_frame, text=i18n.t("send_btn"), width=140, command=self._on_send)
         send_btn.grid(row=1, column=0, sticky="e", pady=(4, 0))
 
         # Action buttons
         btn_frame = ctk.CTkFrame(frame, fg_color="transparent")
         btn_frame.grid(row=2, column=0, sticky="ew", padx=8, pady=(0, 8))
 
-        self.inbox_btn = ctk.CTkButton(btn_frame, text="Check Inbox", command=self._on_check_inbox)
+        self.inbox_btn = ctk.CTkButton(btn_frame, text=i18n.t("check_inbox"), command=self._on_check_inbox)
         self.inbox_btn.pack(side="left", padx=(0, 8))
 
         self.coord_done_btn = ctk.CTkButton(
-            btn_frame, text="Coordination Complete",
+            btn_frame, text=i18n.t("coord_done"),
             fg_color="#E67E22", hover_color="#CA6F1E",
             command=self._on_coordination_done
         )
         self.coord_done_btn.pack(side="left", padx=(0, 8))
 
         self.confirm_gen_btn = ctk.CTkButton(
-            btn_frame, text="Confirm Document Generation",
+            btn_frame, text=i18n.t("confirm_gen"),
             fg_color="#27AE60", hover_color="#1E8449",
             command=self._on_confirm_generation,
             state="disabled"
@@ -122,14 +126,14 @@ class InitializationScreen(ctk.CTkFrame):
         frame.grid_rowconfigure(1, weight=1)
         frame.grid_columnconfigure(0, weight=1)
 
-        ctk.CTkLabel(frame, text="Project Files", font=ctk.CTkFont(weight="bold")).grid(
+        ctk.CTkLabel(frame, text=i18n.t("project_files"), font=ctk.CTkFont(family="Malgun Gothic", size=13, weight="bold")).grid(
             row=0, column=0, pady=(12, 4), padx=8
         )
         self.right_file_list = ctk.CTkScrollableFrame(frame)
         self.right_file_list.grid(row=1, column=0, sticky="nsew", padx=4, pady=(0, 4))
         self.right_file_list.grid_columnconfigure(0, weight=1)
 
-        new_file_btn = ctk.CTkButton(frame, text="+ New File", command=self._on_new_file)
+        new_file_btn = ctk.CTkButton(frame, text=i18n.t("new_file"), command=self._on_new_file)
         new_file_btn.grid(row=2, column=0, pady=(0, 12), padx=8, sticky="ew")
 
     def _refresh_right_sidebar(self):
@@ -146,11 +150,11 @@ class InitializationScreen(ctk.CTkFrame):
             btn_frame = ctk.CTkFrame(row_frame, fg_color="transparent")
             btn_frame.grid(row=1, column=0, sticky="w")
 
-            ctk.CTkButton(btn_frame, text="View", width=40, height=20,
+            ctk.CTkButton(btn_frame, text=i18n.t("view"), width=40, height=20,
                           command=lambda p=fpath: self._view_file(p)).pack(side="left", padx=2)
-            ctk.CTkButton(btn_frame, text="Edit", width=40, height=20,
+            ctk.CTkButton(btn_frame, text=i18n.t("edit"), width=40, height=20,
                           command=lambda p=fpath: self._edit_file(p)).pack(side="left", padx=2)
-            ctk.CTkButton(btn_frame, text="Del", width=40, height=20,
+            ctk.CTkButton(btn_frame, text=i18n.t("delete"), width=40, height=20,
                           fg_color="#E74C3C", hover_color="#C0392B",
                           command=lambda p=fpath: self._delete_file(p)).pack(side="left", padx=2)
 

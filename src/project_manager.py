@@ -11,6 +11,8 @@ logger = logging.getLogger(__name__)
 INVALID_NAME_CHARS = r'\/:*?"<>|'
 INVALID_NAME_RE = re.compile(r'[\\/:*?"<>|]')
 
+_APP_CONFIG_PATH = os.path.join(os.path.dirname(os.path.dirname(__file__)), "app_config.json")
+
 DEFAULT_CONFIG = {
     "llm_provider": "ollama",
     "llm_model": "gemma2:9b",
@@ -173,6 +175,16 @@ class ProjectManager:
             config = json.load(f)
         config.update(updates)
         self._write_json(config_path, config)
+
+    def load_app_config(self) -> dict:
+        if not os.path.exists(_APP_CONFIG_PATH):
+            return {"language": "ko"}
+        with open(_APP_CONFIG_PATH, "r", encoding="utf-8") as f:
+            return json.load(f)
+
+    def save_app_config(self, data: dict):
+        with open(_APP_CONFIG_PATH, "w", encoding="utf-8") as f:
+            json.dump(data, f, ensure_ascii=False, indent=2)
 
     def _write_json(self, path: str, data):
         with open(path, "w", encoding="utf-8") as f:

@@ -10,6 +10,7 @@
 | Phase | Description | Status |
 |-------|-------------|--------|
 | Phase 1 | Project foundation + Initialization Stage | ✅ Complete |
+| Phase 1.5 | UI 개선 (디자인, 내비게이션, i18n, 프로젝트 삭제) | ✅ Complete |
 | Phase 2 | Writing Room | ⬜ Not Started |
 | Phase 3 | Settings Organization Room | ⬜ Not Started |
 | Phase 4 | Episode Management Room | ⬜ Not Started |
@@ -156,7 +157,6 @@
 
 - CrewAI `verbose=False` still prints execution trace prompt to stdout (cosmetic)
 - `run_writing_loop()` is a stub (raises NotImplementedError)
-- Model-not-found warning not yet wired to UI
 
 ---
 
