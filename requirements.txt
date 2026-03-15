@@ -1,0 +1,4 @@
+crewai>=0.80.0
+langchain-ollama>=0.2.0
+customtkinter>=5.2.0
+pyinstaller>=6.0.0
