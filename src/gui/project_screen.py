@@ -17,6 +17,7 @@ class ProjectSelectionScreen(ctk.CTkFrame):
         self.on_project_created = on_project_created
         self.pm = ProjectManager()
         self.selected_project = None
+        self.available_models = []
 
         os.makedirs(PROJECTS_DIR, exist_ok=True)
         self._build_ui()
@@ -101,6 +102,10 @@ class ProjectSelectionScreen(ctk.CTkFrame):
             self.model_dropdown.configure(values=models, state="normal")
             self.model_var.set(models[0])
             self.model_status_label.configure(text=f"{len(models)} model(s) found", text_color="green")
+        self.available_models = models
+        # Re-check warning if a project is already selected
+        if self.selected_project:
+            self._check_model_warning(self.selected_project)
 
     def _refresh_project_list(self):
         for w in self.project_listbox.winfo_children():
@@ -131,6 +136,28 @@ class ProjectSelectionScreen(ctk.CTkFrame):
             else:
                 btn.configure(fg_color="transparent")
         self.open_btn.configure(state="normal")
+        self._check_model_warning(folder)
+
+    def _check_model_warning(self, folder: str):
+        """If the project's saved model is not in the available model list, show a warning."""
+        if not self.available_models:
+            return
+        try:
+            config = self.pm.load_project(folder)
+            saved_model = config.get("llm_model", "")
+        except Exception:
+            return
+        if saved_model and saved_model not in self.available_models:
+            self.model_status_label.configure(
+                text=f"⚠ '{saved_model}' not found in Ollama",
+                text_color="orange"
+            )
+        else:
+            count = len(self.available_models)
+            self.model_status_label.configure(
+                text=f"{count} model(s) found",
+                text_color="green"
+            )
 
     def _open_project(self):
         if not self.selected_project:

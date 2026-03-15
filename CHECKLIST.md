@@ -9,7 +9,7 @@
 
 | Phase | Description | Status |
 |-------|-------------|--------|
-| Phase 1 | Project foundation + Initialization Stage | 🟡 In Progress |
+| Phase 1 | Project foundation + Initialization Stage | ✅ Complete |
 | Phase 2 | Writing Room | ⬜ Not Started |
 | Phase 3 | Settings Organization Room | ⬜ Not Started |
 | Phase 4 | Episode Management Room | ⬜ Not Started |
@@ -35,7 +35,7 @@
 - [x] `OllamaProvider` → `crewai.LLM(model="ollama/{model}")` (LiteLLM routing)
 - [x] `get_available_models()` via `ollama list` parsing
 - [x] `OPENAI_API_KEY=NA` dummy injection (CrewAI compatibility)
-- [ ] Model-not-found warning on project load (model in config no longer installed)
+- [x] Model-not-found warning on project load (model in config no longer installed)
 
 ### Agent Layer
 - [x] `AgentFactory` class
@@ -59,7 +59,7 @@
 - [x] Create new project (name validation, inline error label)
 - [x] Ollama model dropdown (async load via background thread)
 - [x] Model saved to `project_config.json` on open/create
-- [ ] Model-not-found warning display
+- [x] Model-not-found warning display
 
 ### GUI — Initialization Stage (3-panel layout)
 - [x] Left sidebar: settings/context file list (populated after Recorder finishes)
@@ -77,7 +77,7 @@
 - [x] `temp_draft.json` auto-save after each agent response
 - [x] Session resume offer on relaunch (temp_draft detection)
 - [ ] Inbox overflow warning display (was_split flag is passed but UI message is basic)
-- [ ] Editor context cross-check after manual context file edit (Scenario 6)
+- [ ] Editor context cross-check after manual context file edit (Scenario 6) → **moved to Phase 2**
 
 ### Logging
 - [x] `src/logger.py` — RotatingFileHandler (`logs/app.log`) + console handler
