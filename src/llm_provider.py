@@ -14,8 +14,8 @@ class OllamaProvider(BaseLLMProvider):
         self.base_url = base_url
 
     def get_llm(self):
-        from langchain_ollama import OllamaLLM
-        return OllamaLLM(model=self.model, base_url=self.base_url)
+        from crewai import LLM
+        return LLM(model=f"ollama/{self.model}", base_url=self.base_url)
 
 
 def get_available_models() -> list[str]:
