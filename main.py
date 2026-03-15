@@ -16,6 +16,7 @@ import customtkinter as ctk
 from tkinter import messagebox
 
 from src import i18n
+from src.gui import theme as th
 from src.project_manager import ProjectManager
 from src.gui.project_screen import ProjectSelectionScreen, PROJECTS_DIR
 from src.gui.init_screen import InitializationScreen
@@ -25,24 +26,20 @@ ctk.set_default_color_theme("blue")
 
 logger = logging.getLogger(__name__)
 
-FONT_TITLE = ("Malgun Gothic", 20, "bold")   # Windows Korean font
-FONT_BODY  = ("Malgun Gothic", 12)
-FONT_SMALL = ("Malgun Gothic", 11)
-
 
 class App(ctk.CTk):
     def __init__(self):
         super().__init__()
+        self.configure(fg_color=th.BG)
         self.title(i18n.t("app_title"))
-        self.geometry("1200x760")
-        self.minsize(900, 620)
+        self.geometry("1280x800")
+        self.minsize(960, 640)
 
         self.result_queue = queue.Queue()
         self.pm = ProjectManager()
         self.current_screen = None
         self.current_init_screen = None
 
-        # Load language from app_config
         cfg = self.pm.load_app_config()
         i18n.set_lang(cfg.get("language", "ko"))
 
@@ -50,7 +47,7 @@ class App(ctk.CTk):
         self.grid_columnconfigure(0, weight=1)
 
         self._build_topbar()
-        self._content = ctk.CTkFrame(self, fg_color="transparent")
+        self._content = ctk.CTkFrame(self, fg_color=th.BG)
         self._content.grid(row=1, column=0, sticky="nsew")
         self._content.grid_rowconfigure(0, weight=1)
         self._content.grid_columnconfigure(0, weight=1)
@@ -59,31 +56,39 @@ class App(ctk.CTk):
         self.after(100, self._poll_queue)
 
     def _build_topbar(self):
-        bar = ctk.CTkFrame(self, height=48, corner_radius=0, fg_color=("gray85", "gray20"))
+        bar = ctk.CTkFrame(self, height=th.TOPBAR_H, corner_radius=0,
+                           fg_color=th.SURFACE, border_width=0)
         bar.grid(row=0, column=0, sticky="ew")
         bar.grid_columnconfigure(1, weight=1)
         bar.grid_propagate(False)
 
+        # Thin bottom border effect (1px separator)
+        sep = ctk.CTkFrame(self, height=1, corner_radius=0, fg_color=th.BORDER)
+        sep.grid(row=0, column=0, sticky="sew")
+
+        # Left: back button (hidden initially)
         self._back_btn = ctk.CTkButton(
-            bar, text=i18n.t("back_to_projects"), width=140, height=32,
-            fg_color="transparent", hover_color=("gray75", "gray30"),
+            bar, text="← 목록", width=80, height=30,
+            **th.btn_ghost({"font": th.FONT_SMALL}),
             command=self._on_back_to_projects
         )
-        self._back_btn.grid(row=0, column=0, padx=12, pady=8, sticky="w")
-        self._back_btn.grid_remove()  # hidden initially
+        self._back_btn.grid(row=0, column=0, padx=(th.PAD, 0), pady=10, sticky="w")
+        self._back_btn.grid_remove()
 
+        # Center: app name / project name
         self._title_label = ctk.CTkLabel(
             bar, text=i18n.t("app_title"),
-            font=ctk.CTkFont(family="Malgun Gothic", size=16, weight="bold")
+            font=th.FONT_APP, text_color=th.PRIMARY
         )
-        self._title_label.grid(row=0, column=1, pady=8)
+        self._title_label.grid(row=0, column=1, pady=10)
 
+        # Right: language toggle
         self._lang_btn = ctk.CTkButton(
-            bar, text=i18n.t("language_toggle"), width=48, height=32,
-            fg_color="transparent", hover_color=("gray75", "gray30"),
+            bar, text=i18n.t("language_toggle"), width=44, height=28,
+            **th.btn_ghost({"font": th.FONT_SMALL}),
             command=self._toggle_language
         )
-        self._lang_btn.grid(row=0, column=2, padx=12, pady=8, sticky="e")
+        self._lang_btn.grid(row=0, column=2, padx=(0, th.PAD), pady=10, sticky="e")
 
     def _toggle_language(self):
         new_lang = "en" if i18n.get_lang() == "ko" else "ko"
@@ -94,8 +99,7 @@ class App(ctk.CTk):
         self.title(i18n.t("app_title"))
         self._title_label.configure(text=i18n.t("app_title"))
         self._lang_btn.configure(text=i18n.t("language_toggle"))
-        self._back_btn.configure(text=i18n.t("back_to_projects"))
-        # Rebuild current screen to apply new language
+        self._back_btn.configure(text="← 목록")
         if self.current_init_screen:
             project_folder = self.current_init_screen.project_folder
             self._show_init_screen(project_folder)
@@ -121,6 +125,7 @@ class App(ctk.CTk):
     def _show_project_selection(self):
         self._clear_screen()
         self._back_btn.grid_remove()
+        self._title_label.configure(text=i18n.t("app_title"))
         screen = ProjectSelectionScreen(
             self._content,
             on_project_selected=self._on_project_selected,
@@ -131,7 +136,7 @@ class App(ctk.CTk):
 
     def _on_back_to_projects(self):
         if self.current_init_screen and self.current_init_screen._agent_running:
-            if not messagebox.askyesno("작업 중", "에이전트가 실행 중입니다. 메인 화면으로 돌아가시겠습니까?"):
+            if not messagebox.askyesno("작업 중", "에이전트가 실행 중입니다. 돌아가시겠습니까?"):
                 return
         self._show_project_selection()
 
@@ -139,10 +144,10 @@ class App(ctk.CTk):
         try:
             config = self.pm.load_project(project_folder)
         except Exception as e:
-            messagebox.showerror("Error", f"Failed to load project: {e}")
+            messagebox.showerror("오류", f"프로젝트 로드 실패: {e}")
             return
         if config.get("initialized"):
-            messagebox.showinfo("Writing Room", "Writing Room은 Phase 2에서 구현됩니다.")
+            messagebox.showinfo("집필실", "집필실은 Phase 2에서 구현됩니다.")
         else:
             self._show_init_screen(project_folder)
 
@@ -153,9 +158,10 @@ class App(ctk.CTk):
         self._clear_screen()
         project_name = self.pm.get_project_name(project_folder)
         self.title(f"{i18n.t('app_title')} — {project_name}")
-        self._back_btn.configure(text=i18n.t("back_to_projects"))
+        self._title_label.configure(
+            text=f"{i18n.t('app_title')}  ·  {project_name}"
+        )
         self._back_btn.grid()
-
         screen = InitializationScreen(
             self._content,
             project_folder=project_folder,
@@ -169,8 +175,8 @@ class App(ctk.CTk):
     def _on_init_complete(self, project_folder: str):
         project_name = self.pm.get_project_name(project_folder)
         messagebox.showinfo(
-            "초기화 완료" if i18n.get_lang() == "ko" else "Initialization Complete",
-            f"'{project_name}' 프로젝트 초기화가 완료되었습니다!\n\nWriting Room은 Phase 2에서 구현됩니다."
+            "초기화 완료",
+            f"'{project_name}' 초기화가 완료되었습니다.\n집필실은 Phase 2에서 구현됩니다."
         )
         self._show_project_selection()
 
