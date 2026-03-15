@@ -13,10 +13,10 @@ logger = logging.getLogger(__name__)
 
 PROJECTS_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "projects")
 
-FONT_H1    = ctk.CTkFont(family="Malgun Gothic", size=18, weight="bold")
-FONT_H2    = ctk.CTkFont(family="Malgun Gothic", size=14, weight="bold")
-FONT_BODY  = ctk.CTkFont(family="Malgun Gothic", size=13)
-FONT_SMALL = ctk.CTkFont(family="Malgun Gothic", size=11)
+FONT_H1    = ("Malgun Gothic", 18, "bold")
+FONT_H2    = ("Malgun Gothic", 14, "bold")
+FONT_BODY  = ("Malgun Gothic", 13)
+FONT_SMALL = ("Malgun Gothic", 11)
 
 
 class ProjectSelectionScreen(ctk.CTkFrame):
