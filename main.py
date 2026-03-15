@@ -7,7 +7,13 @@ import sys
 if "OPENAI_API_KEY" not in os.environ:
     os.environ["OPENAI_API_KEY"] = "NA"
 
+from src.logger import setup_logging
+setup_logging()
+
+import logging
 import customtkinter as ctk
+
+logger = logging.getLogger(__name__)
 from tkinter import messagebox
 
 # Allow running from project root
@@ -103,9 +109,11 @@ class App(ctk.CTk):
 
 
 def main():
+    logger.info("앱 시작")
     os.makedirs(PROJECTS_DIR, exist_ok=True)
     app = App()
     app.mainloop()
+    logger.info("앱 종료")
 
 
 if __name__ == "__main__":

@@ -1,9 +1,12 @@
+import logging
 import time
 from crewai import Task, Crew
 
 from src.agent_factory import AgentFactory
 from src.llm_provider import OllamaProvider
 from src.project_manager import ProjectManager
+
+logger = logging.getLogger(__name__)
 
 INBOX_CHUNK_SIZE = 10000
 
@@ -34,16 +37,20 @@ def _run_crew(agent, task_description: str, max_retries: int = 3) -> str:
     crew = Crew(agents=[agent], tasks=[task], verbose=False)
     delay = 2
     for attempt in range(max_retries):
+        logger.debug("crew.kickoff() 시도 %d/%d", attempt + 1, max_retries)
         try:
             result = crew.kickoff()
+            logger.debug("crew.kickoff() 완료")
             return str(result)
         except Exception as e:
             err = str(e).lower()
             if "connect" in err or "timeout" in err or "connection" in err:
                 if attempt < max_retries - 1:
+                    logger.warning("Ollama 연결 실패 (시도 %d), %.1fs 후 재시도: %s", attempt + 1, delay, e)
                     time.sleep(delay)
                     delay *= 2
                     continue
+            logger.error("crew.kickoff() 오류: %s", e)
             raise
     raise ConnectionError("Please check the Ollama server (failed after 3 attempts).")
 
@@ -70,7 +77,7 @@ class ManualLoopController:
         self._llm = None
 
     def run_init_editor(self, user_message: str, chat_history: list, project_folder: str) -> str:
-        """Run Editor agent for initialization stage. Returns response string."""
+        logger.info("[Editor] 초기화 대화 응답 생성 시작")
         llm = self._get_llm()
         context = self.pm.read_context_files(project_folder)
         agent = self.factory.create_editor_agent(llm, context)
@@ -96,7 +103,7 @@ class ManualLoopController:
         return _run_crew(agent, task_description)
 
     def run_init_editor_summary(self, chat_history: list, project_folder: str) -> str:
-        """Generate a full summary when user clicks [Coordination Complete]."""
+        logger.info("[Editor] 조율 완료 요약 생성 시작 (대화 %d건)", len(chat_history))
         llm = self._get_llm()
         context = self.pm.read_context_files(project_folder)
         agent = self.factory.create_editor_agent(llm, context)
@@ -123,7 +130,7 @@ class ManualLoopController:
         return _run_crew(agent, task_description)
 
     def run_init_recorder(self, summary: str, project_folder: str) -> dict:
-        """Run Recorder agent. Returns dict with 5-file content."""
+        logger.info("[Recorder] 초기 문서 생성 시작")
         llm = self._get_llm()
         context = self.pm.read_context_files(project_folder)
         agent = self.factory.create_recorder_agent(llm, context)
@@ -145,9 +152,12 @@ class ManualLoopController:
             "Write all content in Korean. Be thorough and well-structured."
         )
         raw = _run_crew(agent, task_description)
-        return _parse_recorder_output(raw)
+        parsed = _parse_recorder_output(raw)
+        logger.info("[Recorder] 문서 생성 완료: %s", list(parsed.keys()))
+        return parsed
 
     def run_inbox_file(self, file_content: str, filename: str, chat_history: list, project_folder: str) -> tuple[str, bool]:
+        logger.info("[Editor] inbox 파일 처리: %s (%d자)", filename, len(file_content))
         """Pass an inbox file to the Editor. Returns (response, was_split)."""
         chunks = _split_into_chunks(file_content)
         was_split = len(chunks) > 1

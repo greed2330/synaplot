@@ -1,5 +1,8 @@
+import logging
 import subprocess
 from abc import ABC, abstractmethod
+
+logger = logging.getLogger(__name__)
 
 
 class BaseLLMProvider(ABC):
@@ -15,11 +18,12 @@ class OllamaProvider(BaseLLMProvider):
 
     def get_llm(self):
         from crewai import LLM
+        logger.info("LLM 생성: ollama/%s @ %s", self.model, self.base_url)
         return LLM(model=f"ollama/{self.model}", base_url=self.base_url)
 
 
 def get_available_models() -> list[str]:
-    """Run `ollama list` and return a list of model name strings."""
+    logger.debug("ollama list 실행 중...")
     try:
         result = subprocess.run(
             ["ollama", "list"],
@@ -28,6 +32,7 @@ def get_available_models() -> list[str]:
             timeout=10,
         )
         if result.returncode != 0:
+            logger.warning("ollama list 실패 (returncode=%d)", result.returncode)
             return []
         lines = result.stdout.strip().splitlines()
         models = []
@@ -35,6 +40,8 @@ def get_available_models() -> list[str]:
             parts = line.split()
             if parts:
                 models.append(parts[0])
+        logger.info("사용 가능한 모델: %s", models)
         return models
-    except (FileNotFoundError, subprocess.TimeoutExpired, OSError):
+    except (FileNotFoundError, subprocess.TimeoutExpired, OSError) as e:
+        logger.warning("ollama 감지 실패: %s", e)
         return []

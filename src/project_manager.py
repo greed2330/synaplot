@@ -1,8 +1,11 @@
 import json
+import logging
 import os
 import re
 import shutil
 from datetime import datetime
+
+logger = logging.getLogger(__name__)
 
 
 INVALID_NAME_CHARS = r'\/:*?"<>|'
@@ -29,6 +32,7 @@ class ProjectManager:
         project_folder = os.path.join(base_dir, name)
         if os.path.exists(project_folder):
             raise ValueError(f"Project '{name}' already exists.")
+        logger.info("프로젝트 생성: %s", project_folder)
 
         # Create folder structure
         for sub in ("settings", "chapters", "context", "inbox", "backup"):
@@ -43,6 +47,7 @@ class ProjectManager:
         return project_folder
 
     def load_project(self, project_folder: str) -> dict:
+        logger.info("프로젝트 로드: %s", project_folder)
         config_path = os.path.join(project_folder, "project_config.json")
         if not os.path.exists(config_path):
             raise FileNotFoundError(f"project_config.json not found in {project_folder}")
@@ -80,6 +85,7 @@ class ProjectManager:
         return os.path.basename(project_folder)
 
     def create_backup(self, project_folder: str):
+        logger.info("백업 생성 중: %s", project_folder)
         backup_base = os.path.join(project_folder, "backup")
         existing = [d for d in os.listdir(backup_base) if re.match(r"^\d{3}_", d)]
         next_num = len(existing) + 1
@@ -94,6 +100,7 @@ class ProjectManager:
             return []
 
         shutil.copytree(project_folder, dest, ignore=ignore_backup)
+        logger.info("백업 완료: %s", dest)
 
     def save_temp_draft(self, project_folder: str, data: dict):
         data["updated_at"] = datetime.now().strftime("%Y-%m-%dT%H:%M:%S")
@@ -153,6 +160,7 @@ class ProjectManager:
                 f.write(content)
 
     def mark_initialized(self, project_folder: str):
+        logger.info("프로젝트 초기화 완료 표시: %s", project_folder)
         config_path = os.path.join(project_folder, "project_config.json")
         with open(config_path, "r", encoding="utf-8") as f:
             config = json.load(f)
