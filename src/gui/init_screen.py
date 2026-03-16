@@ -26,6 +26,7 @@ FILE_DISPLAY_NAMES = {
 
 CHAT_ROLES = {
     "user":     ("You",      th.TEXT2),
+    "director": ("Director", th.WARNING),
     "editor":   ("Editor",   th.PRIMARY),
     "recorder": ("Recorder", "#7B68EE"),
     "system":   ("System",   th.TEXT3),
@@ -352,17 +353,17 @@ class InitializationScreen(ctk.CTkFrame):
         self._post_message("user", text)
         self.chat_history.append({"role": "user", "content": text})
         self._save_chat_history()
-        self._run_editor(text)
+        self._run_director(text)
 
-    def _run_editor(self, user_message: str):
-        self._set_busy(True, "Editor가 응답 중...")
+    def _run_director(self, user_message: str):
+        self._set_busy(True, "🎬 Director가 아이디어를 정리하는 중이에요...")
         history = list(self.chat_history)
         folder = self.project_folder
 
         def _worker():
             try:
-                response = self.controller.run_init_editor(user_message, history, folder)
-                self.result_queue.put({"type": "editor_reply", "content": response})
+                response = self.controller.run_init_director(user_message, history, folder)
+                self.result_queue.put({"type": "director_reply", "content": response})
             except ConnectionError as e:
                 self.result_queue.put({"type": "error", "content": str(e)})
             except Exception as e:
@@ -416,16 +417,16 @@ class InitializationScreen(ctk.CTkFrame):
         if self._agent_running:
             return
         if not messagebox.askyesno("Coordination Complete",
-                                   "Coordination을 완료하고 Editor에게 최종 요약을 생성하도록 하시겠습니까?"):
+                                   "Coordination을 완료하고 Director에게 최종 요약을 생성하도록 하시겠습니까?"):
             return
-        self._set_busy(True, "Editor가 최종 요약을 생성 중...")
+        self._set_busy(True, "🎬 Director가 최종 요약을 생성 중...")
         history = list(self.chat_history)
         folder = self.project_folder
 
         def _worker():
             try:
-                summary = self.controller.run_init_editor_summary(history, folder)
-                self.result_queue.put({"type": "editor_summary_done", "content": summary})
+                summary = self.controller.run_init_director_summary(history, folder)
+                self.result_queue.put({"type": "director_summary_done", "content": summary})
             except ConnectionError as e:
                 self.result_queue.put({"type": "error", "content": str(e)})
             except Exception as e:
@@ -461,10 +462,10 @@ class InitializationScreen(ctk.CTkFrame):
     def process_result(self, result: dict):
         rtype = result.get("type")
 
-        if rtype == "editor_reply":
+        if rtype == "director_reply":
             content = result["content"]
-            self._post_message("editor", content)
-            self.chat_history.append({"role": "editor", "content": content})
+            self._post_message("director", content)
+            self.chat_history.append({"role": "director", "content": content})
             self._save_chat_history()
             self._auto_save_draft("chatting", editor_output=content)
             self._set_busy(False)
@@ -476,26 +477,26 @@ class InitializationScreen(ctk.CTkFrame):
             if was_split:
                 self._post_system_message(f"[{fname}] 파일이 크기 초과로 분할 처리되었습니다.")
             self._post_message("system", f"[{fname}] 로드됨")
-            self._post_message("editor", response)
-            self.chat_history.append({"role": "editor", "content": response})
+            self._post_message("director", response)
+            self.chat_history.append({"role": "director", "content": response})
             self._save_chat_history()
 
         elif rtype == "inbox_all_done":
             self._set_busy(False)
             self._auto_save_draft("chatting")
 
-        elif rtype == "editor_summary_done":
+        elif rtype == "director_summary_done":
             content = result["content"]
             self.editor_summary = content
-            self._post_message("editor", content)
-            self.chat_history.append({"role": "editor", "content": content})
+            self._post_message("director", content)
+            self.chat_history.append({"role": "director", "content": content})
             self._save_chat_history()
             self.stage = "summary_ready"
             self.confirm_gen_btn.configure(state="normal")
             self.coord_done_btn.configure(state="disabled")
             self._auto_save_draft("editor_done", editor_output=content)
             self._set_busy(False)
-            self._post_system_message("Editor 요약이 완료되었습니다. [Confirm Document Generation]을 눌러 문서를 생성하세요.")
+            self._post_system_message("Director 요약이 완료되었습니다. [Confirm Document Generation]을 눌러 문서를 생성하세요.")
 
         elif rtype == "recorder_draft_done":
             draft = result["content"]
@@ -719,9 +720,10 @@ class InitializationScreen(ctk.CTkFrame):
                          text_color=th.TEXT3, font=th.FONT_BODY).grid(
                 row=1, column=0, sticky="w", pady=th.PAD_SM)
             return
-        role_label = {"user": "나", "editor": "Editor", "recorder": "Recorder", "system": "System"}
+        role_label = {"user": "나", "director": "Director", "editor": "Editor", "recorder": "Recorder", "system": "System"}
         role_color = {
             "user": th.TEXT2,
+            "director": th.WARNING,
             "editor": th.PRIMARY,
             "recorder": "#7B68EE",
             "system": th.TEXT3,
