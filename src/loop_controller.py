@@ -76,13 +76,12 @@ class ManualLoopController:
         """Call this when model settings change."""
         self._llm = None
 
-    def run_init_editor(self, user_message: str, chat_history: list, project_folder: str) -> str:
-        logger.info("[Editor] 초기화 대화 응답 생성 시작")
+    def run_init_director(self, user_message: str, chat_history: list, project_folder: str) -> str:
+        logger.info("[Director] 초기화 대화 응답 생성 시작")
         llm = self._get_llm()
         context = self.pm.read_context_files(project_folder)
-        agent = self.factory.create_editor_agent(llm, context)
+        agent = self.factory.create_director_agent(llm, context)
 
-        # Build conversation history for context
         history_text = ""
         if chat_history:
             history_lines = []
@@ -102,11 +101,11 @@ class ManualLoopController:
         )
         return _run_crew(agent, task_description)
 
-    def run_init_editor_summary(self, chat_history: list, project_folder: str) -> str:
-        logger.info("[Editor] 조율 완료 요약 생성 시작 (대화 %d건)", len(chat_history))
+    def run_init_director_summary(self, chat_history: list, project_folder: str) -> str:
+        logger.info("[Director] 조율 완료 요약 생성 시작 (대화 %d건)", len(chat_history))
         llm = self._get_llm()
         context = self.pm.read_context_files(project_folder)
-        agent = self.factory.create_editor_agent(llm, context)
+        agent = self.factory.create_director_agent(llm, context)
 
         history_lines = []
         for msg in chat_history:
@@ -166,7 +165,7 @@ class ManualLoopController:
         for i, chunk in enumerate(chunks):
             llm = self._get_llm()
             context = self.pm.read_context_files(project_folder)
-            agent = self.factory.create_editor_agent(llm, context)
+            agent = self.factory.create_director_agent(llm, context)
 
             chunk_label = f" (part {i+1}/{len(chunks)})" if was_split else ""
             task_description = (

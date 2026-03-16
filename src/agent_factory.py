@@ -17,39 +17,52 @@ def _build_context_block(context: dict) -> str:
 
 
 class AgentFactory:
-    def create_editor_agent(self, llm, context: dict, mode: str = "init") -> Agent:
+    def create_director_agent(self, llm, context: dict) -> Agent:
+        """Initialization-stage only. Coordinates worldbuilding/settings via structured Q&A."""
         ctx = _build_context_block(context)
-        if mode == "writing":
-            backstory = (
-                "You are a meticulous story editor specializing in Korean web novels. "
-                "Your role in the Writing Room is to review each chapter draft against the following 7-point checklist:\n"
-                "1. Has the user's direction actually been reflected in the body text?\n"
-                "2. Has any foreshadowing been suddenly forgotten?\n"
-                "3. Does the narrative flow jump or leak off-track?\n"
-                "4. Does anything conflict with the worldbuilding?\n"
-                "5. Has the design intent been realized in the body text?\n"
-                "6. Does any character mention information they could not know?\n"
-                "7. Are monologue/internal thoughts being treated as known by other characters?\n\n"
-                "For each issue found, output a numbered point with '⚠️' prefix. "
-                "For each item that passes, output '✅' with a brief note. "
-                "Always respond in Korean.\n\n"
-            )
-            goal = "Review chapter drafts against the 7-point checklist and report issues clearly"
-        else:
-            backstory = (
-                "You are a meticulous story editor specializing in Korean web novels. "
-                "Your role during the initialization stage is to help the user build a solid foundation "
-                "for their novel through structured questions. You identify missing pieces, contradictions, "
-                "and gaps in the worldbuilding, plot, and character settings. "
-                "You ask focused, one-at-a-time questions to progressively fill in the story's foundation. "
-                "Always respond in Korean unless the user writes in another language.\n\n"
-            )
-            goal = "Coordinate worldbuilding and novel settings through structured Q&A with the user"
+        backstory = (
+            "You are a warm, curious creative consultant specializing in Korean web novels. "
+            "Your sole job is to help the user build a solid foundation for their novel "
+            "during the initialization stage — before any writing begins. "
+            "You draw out the user's vision through focused, one-at-a-time questions, "
+            "identifying gaps in worldbuilding, plot, and character settings. "
+            "You are NOT a critic and NOT a writer — you are a creative partner who listens, "
+            "organizes, and asks the right questions to bring the user's ideas into focus. "
+            "Always respond in Korean unless the user writes in another language.\n\n"
+        )
+        if ctx:
+            backstory += f"Current project context:\n{ctx}"
+        return Agent(
+            role="Director",
+            goal="Coordinate worldbuilding and novel settings through warm, structured Q&A with the user",
+            backstory=backstory,
+            llm=llm,
+            verbose=False,
+            allow_delegation=False,
+        )
+
+    def create_editor_agent(self, llm, context: dict) -> Agent:
+        """Writing Room and Settings Organization Room only. Never used in initialization."""
+        ctx = _build_context_block(context)
+        backstory = (
+            "You are a meticulous story editor specializing in Korean web novels. "
+            "Your role is to review each chapter draft against the following 7-point checklist:\n"
+            "1. Has the user's direction actually been reflected in the body text?\n"
+            "2. Has any foreshadowing been suddenly forgotten?\n"
+            "3. Does the narrative flow jump or leak off-track?\n"
+            "4. Does anything conflict with the worldbuilding?\n"
+            "5. Has the design intent been realized in the body text?\n"
+            "6. Does any character mention information they could not know?\n"
+            "7. Are monologue/internal thoughts being treated as known by other characters?\n\n"
+            "For each issue found, output a numbered point with '⚠️' prefix. "
+            "For each item that passes, output '✅' with a brief note. "
+            "Always respond in Korean.\n\n"
+        )
         if ctx:
             backstory += f"Current project context:\n{ctx}"
         return Agent(
             role="Editor",
-            goal=goal,
+            goal="Review chapter drafts against the 7-point checklist and report issues clearly",
             backstory=backstory,
             llm=llm,
             verbose=False,
@@ -78,12 +91,13 @@ class AgentFactory:
         )
 
     def create_writer_agent(self, llm, context: dict) -> Agent:
-        # Stub for Phase 2
         ctx = _build_context_block(context)
         backstory = (
             "You are a creative writer for Korean web novels. "
             "You write engaging, vivid chapter content based on the user's direction, "
             "worldbuilding documents, and story context. "
+            "Target chapter length: approximately 5,500 characters including spaces and line breaks "
+            "(Korean web novel standard). Do not significantly exceed or fall short of this target. "
             "After writing the chapter body, you also output a structured design-intent summary "
             "listing confirmed facts, foreshadowing planted, and any setting changes.\n\n"
         )
