@@ -5,6 +5,7 @@ import customtkinter as ctk
 from tkinter import messagebox, simpledialog
 
 from src import i18n
+from src.i18n import tlist as i18n_tlist
 from src.gui import theme as th
 from src.loop_controller import ManualLoopController
 from src.project_manager import ProjectManager
@@ -32,25 +33,7 @@ CHAT_ROLES = {
     "system":   ("System",      th.TEXT3),
 }
 
-FLAVOR_TEXTS = {
-    "director": [
-        "🎬 Director가 아이디어를 정리하는 중이에요...",
-        "🎬 좋은 질문들이 떠오르고 있어요...",
-        "🎬 잠깐, 더 생각해볼게요! 🤔",
-    ],
-    "recorder": [
-        "📦 Recorder가 기록을 정리하는 중이에요...",
-        "📦 문서를 꼼꼼히 작성하는 중이에요...",
-        "📦 거의 다 됐어요!",
-    ],
-    "default": [
-        "열심히 처리 중이에요...",
-        "조금만 기다려 주세요...",
-    ],
-}
-
 FLAVOR_INTERVAL_MS = 7000   # 7초마다 텍스트 전환
-FLAVOR_WAIT_MSG = "아직 생각 중이에요, 조금만 기다려 주세요! 🤔"
 
 
 class InitializationScreen(ctk.CTkFrame):
@@ -942,9 +925,9 @@ class InitializationScreen(ctk.CTkFrame):
         if not self._agent_running:
             return
         if self._flavor_elapsed >= 30000:
-            self.loading_flavor_label.configure(text=FLAVOR_WAIT_MSG)
+            self.loading_flavor_label.configure(text=i18n.t("flavor_wait"))
         else:
-            texts = FLAVOR_TEXTS.get(self._flavor_agent, FLAVOR_TEXTS["default"])
+            texts = i18n_tlist(f"flavor_{self._flavor_agent}") or i18n_tlist("flavor_default")
             self.loading_flavor_label.configure(text=texts[self._flavor_idx % len(texts)])
             self._flavor_idx += 1
         self._flavor_elapsed += FLAVOR_INTERVAL_MS

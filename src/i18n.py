@@ -39,7 +39,34 @@ STRINGS = {
         "view": "보기",
         "edit": "편집",
         "delete": "삭제",
-        "init_welcome": "Editor가 초기화를 시작합니다. 소설에 대한 아이디어를 자유롭게 이야기해 주세요!",
+        "init_welcome": "Director가 초기화를 시작합니다. 소설에 대한 아이디어를 자유롭게 이야기해 주세요!",
+
+        # Flavor texts (loading indicator)
+        "flavor_wait": "아직 생각 중이에요, 조금만 기다려 주세요! 🤔",
+        "flavor_director": [
+            "🎬 Director가 아이디어를 정리하는 중이에요...",
+            "🎬 좋은 질문들이 떠오르고 있어요...",
+            "🎬 잠깐, 더 생각해볼게요! 🤔",
+        ],
+        "flavor_recorder": [
+            "📦 Recorder가 기록을 정리하는 중이에요...",
+            "📦 문서를 꼼꼼히 작성하는 중이에요...",
+            "📦 거의 다 됐어요!",
+        ],
+        "flavor_writer": [
+            "✍️ Writer가 설정 파일을 읽는 중이에요...",
+            "✍️ Writer가 열심히 쓰는 중이에요...",
+            "✍️ 문장을 다듬는 중이에요...",
+        ],
+        "flavor_editor": [
+            "🔍 Editor가 꼼꼼히 읽는 중이에요...",
+            "🔍 Editor가 체크리스트를 확인하는 중이에요...",
+            "🔍 논리적 오류가 없는지 살피는 중이에요...",
+        ],
+        "flavor_default": [
+            "열심히 처리 중이에요...",
+            "조금만 기다려 주세요...",
+        ],
 
         # Writing screen
         "writing_room": "집필실",
@@ -94,7 +121,34 @@ STRINGS = {
         "view": "View",
         "edit": "Edit",
         "delete": "Del",
-        "init_welcome": "Editor is starting initialization. Feel free to share your novel ideas!",
+        "init_welcome": "Director is starting initialization. Feel free to share your novel ideas!",
+
+        # Flavor texts (loading indicator)
+        "flavor_wait": "Still thinking, please wait a moment! 🤔",
+        "flavor_director": [
+            "🎬 Director is organizing your ideas...",
+            "🎬 Good questions are forming...",
+            "🎬 Let me think about this a bit more! 🤔",
+        ],
+        "flavor_recorder": [
+            "📦 Recorder is organizing the notes...",
+            "📦 Writing the documents carefully...",
+            "📦 Almost done!",
+        ],
+        "flavor_writer": [
+            "✍️ Writer is reading the settings...",
+            "✍️ Writer is hard at work...",
+            "✍️ Polishing the sentences...",
+        ],
+        "flavor_editor": [
+            "🔍 Editor is reading carefully...",
+            "🔍 Editor is going through the checklist...",
+            "🔍 Checking for logical inconsistencies...",
+        ],
+        "flavor_default": [
+            "Working hard...",
+            "Please wait a moment...",
+        ],
 
         # Writing screen
         "writing_room": "Writing Room",
@@ -117,6 +171,10 @@ STRINGS = {
 def t(key: str, **kwargs) -> str:
     s = STRINGS.get(_lang, STRINGS["ko"]).get(key, key)
     return s.format(**kwargs) if kwargs else s
+
+def tlist(key: str) -> list:
+    val = STRINGS.get(_lang, STRINGS["ko"]).get(key, [])
+    return val if isinstance(val, list) else [val]
 
 def get_lang() -> str:
     return _lang

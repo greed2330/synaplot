@@ -6,6 +6,7 @@ import customtkinter as ctk
 from tkinter import messagebox, simpledialog
 
 from src import i18n
+from src.i18n import tlist as i18n_tlist
 from src.gui import theme as th
 from src.gui.init_screen import FILE_DISPLAY_NAMES
 from src.loop_controller import ManualLoopController
@@ -21,30 +22,7 @@ CHAT_ROLES = {
     "system":   ("System",      th.TEXT3),
 }
 
-FLAVOR_TEXTS = {
-    "writer": [
-        "✍️ Writer가 설정 파일을 읽는 중이에요...",
-        "✍️ Writer가 열심히 쓰는 중이에요...",
-        "✍️ 문장을 다듬는 중이에요...",
-    ],
-    "editor": [
-        "🔍 Editor가 꼼꼼히 읽는 중이에요...",
-        "🔍 Editor가 체크리스트를 확인하는 중이에요...",
-        "🔍 논리적 오류가 없는지 살피는 중이에요...",
-    ],
-    "recorder": [
-        "📦 Recorder가 기록을 정리하는 중이에요...",
-        "📦 컨텍스트 파일을 업데이트하는 중이에요...",
-        "📦 거의 다 됐어요!",
-    ],
-    "default": [
-        "열심히 처리 중이에요...",
-        "조금만 기다려 주세요...",
-    ],
-}
-
 FLAVOR_INTERVAL_MS = 7000
-FLAVOR_WAIT_MSG = "아직 생각 중이에요, 조금만 기다려 주세요! 🤔"
 
 # Files that cannot be deleted or edited directly
 READONLY_FILES = {"project_config.json"}
@@ -850,9 +828,9 @@ class WritingScreen(ctk.CTkFrame):
         if not self._agent_running:
             return
         if self._flavor_elapsed >= 30000:
-            self.loading_flavor_label.configure(text=FLAVOR_WAIT_MSG)
+            self.loading_flavor_label.configure(text=i18n.t("flavor_wait"))
         else:
-            texts = FLAVOR_TEXTS.get(self._flavor_agent, FLAVOR_TEXTS["default"])
+            texts = i18n_tlist(f"flavor_{self._flavor_agent}") or i18n_tlist("flavor_default")
             self.loading_flavor_label.configure(text=texts[self._flavor_idx % len(texts)])
             self._flavor_idx += 1
         self._flavor_elapsed += FLAVOR_INTERVAL_MS
