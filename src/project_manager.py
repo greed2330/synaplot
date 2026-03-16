@@ -90,7 +90,8 @@ class ProjectManager:
         logger.info("백업 생성 중: %s", project_folder)
         backup_base = os.path.join(project_folder, "backup")
         existing = [d for d in os.listdir(backup_base) if re.match(r"^\d{3}_", d)]
-        next_num = len(existing) + 1
+        nums = [int(d[:3]) for d in existing]
+        next_num = max(nums) + 1 if nums else 1
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
         backup_name = f"{next_num:03d}_{timestamp}"
         dest = os.path.join(backup_base, backup_name)

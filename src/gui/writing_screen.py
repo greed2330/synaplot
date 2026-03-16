@@ -386,6 +386,7 @@ class WritingScreen(ctk.CTkFrame):
         if self.revision_count >= 2:
             messagebox.showwarning("수정 한도 초과", "최대 2회 수정 가능합니다. '무시하고 승인'을 사용하거나 직접 편집하세요.")
             return
+        self.revision_count += 1
         self.user_input.delete("1.0", "end")
         self._post_system_message(f"수정 요청: {feedback}")
         self.chat_history.append({"role": "system", "content": f"수정 요청: {feedback}"})
@@ -488,11 +489,7 @@ class WritingScreen(ctk.CTkFrame):
             self.chat_history.append({"role": "writer", "content": body})
             self._save_chat_history()
             self._auto_save_draft("writer_done")
-            # Check if this is a revision
-            is_revision = self.revision_count > 0
-            if is_revision:
-                self.revision_count += 1
-            self._run_editor(is_revision=is_revision)
+            self._run_editor(is_revision=self.revision_count > 0)
 
         elif rtype == "editor_done":
             review = result["review"]
@@ -720,7 +717,7 @@ class WritingScreen(ctk.CTkFrame):
         stage = draft.get("stage", "")
         if stage in ("writer_done", "editor_reviewed"):
             self.current_writer_output = draft.get("writer_output") or ""
-            self.current_design_intent = draft.get("editor_output") or ""
+            self.current_design_intent = draft.get("design_intent") or ""
             self.current_editor_review = draft.get("editor_output") or ""
             self._post_system_message("이전 작업이 복원되었습니다. 승인하거나 새 지시를 입력하세요.")
             self.stage = "awaiting_decision"
@@ -728,7 +725,7 @@ class WritingScreen(ctk.CTkFrame):
             self.revision_btn.configure(state="normal")
         elif stage == "recorder_drafted" and draft.get("recorder_draft"):
             self.current_writer_output = draft.get("writer_output") or ""
-            self.current_design_intent = draft.get("editor_output") or ""
+            self.current_design_intent = draft.get("design_intent") or ""
             self._show_recorder_draft(draft["recorder_draft"])
 
     def _auto_save_draft(self, stage: str, recorder_draft=None):
@@ -739,6 +736,7 @@ class WritingScreen(ctk.CTkFrame):
             "active_episode_id": self.active_episode_id,
             "user_input": self.current_user_input,
             "writer_output": self.current_writer_output,
+            "design_intent": self.current_design_intent,
             "editor_output": self.current_editor_review,
             "recorder_draft": recorder_draft,
         }

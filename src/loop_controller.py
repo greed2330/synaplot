@@ -157,8 +157,8 @@ class ManualLoopController:
         return parsed
 
     def run_inbox_file(self, file_content: str, filename: str, chat_history: list, project_folder: str) -> tuple[str, bool]:
-        logger.info("[Editor] inbox 파일 처리: %s (%d자)", filename, len(file_content))
         """Pass an inbox file to the Editor. Returns (response, was_split)."""
+        logger.info("[Editor] inbox 파일 처리: %s (%d자)", filename, len(file_content))
         chunks = _split_into_chunks(file_content)
         was_split = len(chunks) > 1
 
