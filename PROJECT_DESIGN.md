@@ -1,7 +1,7 @@
 # Web Novel AI Writer Team — Project Design Document
 
 > ⚠️ This document is continuously updated. Always interpret it based on the latest version.
-> Last updated: 2026-03-16 (all gaps resolved — temp_draft schema, inbox UX, episode optionality, model UI location, chapter uniqueness, settings backup, project name validation)
+> Last updated: 2026-03-16 (Director agent added, Editor init role removed, Writer length guidance added, UI chat bubble + loading indicator design finalized)
 
 ---
 
@@ -75,9 +75,18 @@ Create the working folder structure + produce the novel’s foundation documents
 
 ## 4. Agent Structure and Roles
 
+### 🎬 Director Agent
+- Active in: Initialization Stage only
+- Dedicated to the initialization stage — the Editor does NOT handle initialization
+- Receives the user’s raw ideas, asks structured one-at-a-time questions to fill gaps, and coordinates worldbuilding/settings into a coherent foundation
+- After the user clicks [Coordination Complete], outputs a full structured summary to hand off to the Recorder
+- Persona: a curious, warm creative consultant who draws out the user’s vision through focused questions
+- Always responds in Korean unless the user writes in another language
+
 ### ✍️ Writer Agent
-- Active in: Writing Room
-- Writes the novel body based on the user’s repertoire, worldbuilding documents, and context summary
+- Active in: Writing Room only
+- Writes the novel body based on the user’s direction, worldbuilding documents, and context summary
+- **Target chapter length: approximately 5,500 characters including spaces and line breaks** (Korean web novel standard per chapter)
 - After writing, also outputs a **structured design-intent summary** so the Recorder and Editor can reference it without inference
   ```
   Confirmed facts:
@@ -92,8 +101,7 @@ Create the working folder structure + produce the novel’s foundation documents
   ```
 
 ### 🔍 Editor Agent
-- Active in: Initialization Stage (solo) / Writing Room / Settings Organization Room
-- **Initialization Stage**: coordinates worldbuilding/settings through structured questions
+- Active in: Writing Room / Settings Organization Room (NOT the Initialization Stage)
 - **Writing Room**: cross-checks the body text + design intent + `story_context.md` + `character_relations.md`, then reviews rigorously
   - Whether foreshadowing has been suddenly forgotten
   - Whether the narrative flow jumps or leaks off-track
@@ -213,9 +221,36 @@ Create the working folder structure + produce the novel’s foundation documents
 - Episode arc list and current active episode (Writing Room only)
 
 ### 7-3. Main Area — Chat Area
-- Displays agent messages with clear speaker separation
+
+#### Message display
+- Each message is rendered as an individual card (not a flat text block)
+- Role label + color is shown at the top of each card
+- User messages are right-aligned; agent messages are left-aligned
+- Color assignments per role:
+  - **나 (user)**: `SURFACE3`, right-aligned
+  - **🎬 Director**: `WARNING` orange
+  - **✍️ Writer**: `SUCCESS` green
+  - **🔍 Editor**: `PRIMARY` blue
+  - **📦 Recorder**: `#7B68EE` purple
+  - **System**: `TEXT3` gray
+
+#### Loading indicator (shown while any agent is running)
+- A thin indeterminate progress bar animates below the last message
+- Flavor text above the bar describes what the agent is doing, and rotates on a timer:
+
+| Agent / Stage | Flavor text examples |
+|---|---|
+| Director | "🎬 Director가 아이디어를 정리하는 중이에요..." → "🎬 잠깐, 더 생각해볼게요! 🤔" |
+| Writer | "✍️ Writer가 설정 파일을 읽는 중이에요..." → "✍️ Writer가 열심히 쓰는 중이에요..." |
+| Editor | "🔍 Editor가 꼼꼼히 읽는 중이에요..." → "🔍 Editor가 체크리스트를 확인하는 중이에요..." |
+| Recorder | "📦 Recorder가 기록을 정리하는 중이에요..." → "📦 거의 다 됐어요!" |
+| (after 30s) | "아직 생각 중이에요, 조금만 기다려 주세요! 🤔" |
+
+- All input and action buttons are disabled while the indicator is visible
+
+#### Other
 - Shows the current episode/chapter at the top (Writing Room only)
-- User input field
+- User input field (Ctrl+Enter to send)
 - Context-sensitive action buttons (enabled depending on pipeline stage):
   - Writing Room: [Approve] [Request Revision]
   - Settings Organization Room: [Adopt] [Keep] [Edit Manually]
