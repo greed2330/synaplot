@@ -25,12 +25,32 @@ FILE_DISPLAY_NAMES = {
 }
 
 CHAT_ROLES = {
-    "user":     ("You",      th.TEXT2),
-    "director": ("Director", th.WARNING),
-    "editor":   ("Editor",   th.PRIMARY),
-    "recorder": ("Recorder", "#7B68EE"),
-    "system":   ("System",   th.TEXT3),
+    "user":     ("나",          th.TEXT2),
+    "director": ("🎬 Director", th.WARNING),
+    "editor":   ("🔍 Editor",   th.PRIMARY),
+    "recorder": ("📦 Recorder", "#7B68EE"),
+    "system":   ("System",      th.TEXT3),
 }
+
+FLAVOR_TEXTS = {
+    "director": [
+        "🎬 Director가 아이디어를 정리하는 중이에요...",
+        "🎬 좋은 질문들이 떠오르고 있어요...",
+        "🎬 잠깐, 더 생각해볼게요! 🤔",
+    ],
+    "recorder": [
+        "📦 Recorder가 기록을 정리하는 중이에요...",
+        "📦 문서를 꼼꼼히 작성하는 중이에요...",
+        "📦 거의 다 됐어요!",
+    ],
+    "default": [
+        "열심히 처리 중이에요...",
+        "조금만 기다려 주세요...",
+    ],
+}
+
+FLAVOR_INTERVAL_MS = 7000   # 7초마다 텍스트 전환
+FLAVOR_WAIT_MSG = "아직 생각 중이에요, 조금만 기다려 주세요! 🤔"
 
 
 class InitializationScreen(ctk.CTkFrame):
@@ -47,6 +67,11 @@ class InitializationScreen(ctk.CTkFrame):
         self.editor_summary = ""
         self.recorder_draft = {}
         self._agent_running = False
+        self._flavor_after_id = None
+        self._flavor_idx = 0
+        self._flavor_elapsed = 0
+        self._flavor_agent = "default"
+        self._msg_row = 0
 
         self._build_ui()
         self._restore_chat_history()
@@ -101,17 +126,36 @@ class InitializationScreen(ctk.CTkFrame):
         frame.grid_rowconfigure(0, weight=1)
         frame.grid_columnconfigure(0, weight=1)
 
-        # Chat display
-        self.chat_display = ctk.CTkTextbox(
-            frame, state="disabled", wrap="word",
-            fg_color=th.SURFACE, text_color=th.TEXT, font=th.FONT_BODY,
-            corner_radius=0
+        # Chat message area (card-based)
+        self.chat_scroll = ctk.CTkScrollableFrame(
+            frame, fg_color=th.SURFACE, corner_radius=0,
+            scrollbar_button_color=th.SURFACE3,
+            scrollbar_button_hover_color=th.BORDER,
         )
-        self.chat_display.grid(row=0, column=0, sticky="nsew", padx=0, pady=(0, 1))
+        self.chat_scroll.grid(row=0, column=0, sticky="nsew", pady=(0, 1))
+        self.chat_scroll.grid_columnconfigure(0, weight=1)
+
+        # Loading indicator (hidden initially)
+        self.loading_frame = ctk.CTkFrame(frame, fg_color=th.SURFACE, corner_radius=0, height=48)
+        self.loading_frame.grid(row=1, column=0, sticky="ew")
+        self.loading_frame.grid_propagate(False)
+        self.loading_frame.grid_columnconfigure(0, weight=1)
+        self.loading_frame.grid_remove()
+
+        self.loading_flavor_label = ctk.CTkLabel(
+            self.loading_frame, text="", font=th.FONT_SMALL, text_color=th.TEXT2, anchor="w"
+        )
+        self.loading_flavor_label.grid(row=0, column=0, padx=th.PAD, pady=(th.PAD_SM, 2), sticky="w")
+
+        self.loading_bar = ctk.CTkProgressBar(
+            self.loading_frame, mode="indeterminate", height=3,
+            fg_color=th.SURFACE2, progress_color=th.PRIMARY, corner_radius=0,
+        )
+        self.loading_bar.grid(row=1, column=0, sticky="ew", padx=0, pady=0)
 
         # Input area
         input_frame = ctk.CTkFrame(frame, fg_color=th.SURFACE, corner_radius=0)
-        input_frame.grid(row=1, column=0, sticky="ew")
+        input_frame.grid(row=2, column=0, sticky="ew")
         input_frame.grid_columnconfigure(0, weight=1)
 
         self.user_input = ctk.CTkTextbox(
@@ -132,7 +176,7 @@ class InitializationScreen(ctk.CTkFrame):
 
         # Action buttons bar
         btn_frame = ctk.CTkFrame(frame, fg_color=th.SURFACE, corner_radius=0, height=48)
-        btn_frame.grid(row=2, column=0, sticky="ew")
+        btn_frame.grid(row=3, column=0, sticky="ew")
         btn_frame.grid_propagate(False)
 
         self.inbox_btn = ctk.CTkButton(
@@ -327,16 +371,40 @@ class InitializationScreen(ctk.CTkFrame):
     # --- Chat helpers ---
 
     def _post_message(self, role: str, content: str):
+        is_user = (role == "user")
         label, color = CHAT_ROLES.get(role, ("Unknown", th.TEXT))
-        self.chat_display.configure(state="normal")
-        self.chat_display.insert("end", f"\n[{label}]\n", f"role_{role}")
-        self.chat_display.insert("end", f"  {content}\n", "content")
-        self.chat_display.insert("end", "\u2500" * 40 + "\n", "separator")
-        self.chat_display.tag_config(f"role_{role}", foreground=color)
-        self.chat_display.tag_config("content", foreground=th.TEXT)
-        self.chat_display.tag_config("separator", foreground=th.BORDER)
-        self.chat_display.configure(state="disabled")
-        self.chat_display.see("end")
+
+        # Outer card
+        card = ctk.CTkFrame(
+            self.chat_scroll,
+            fg_color=th.SURFACE3 if is_user else th.SURFACE2,
+            corner_radius=th.RADIUS_MD,
+            border_width=1, border_color=th.BORDER,
+        )
+        card.grid(
+            row=self._msg_row, column=0, sticky="e" if is_user else "w",
+            pady=(0, th.PAD_SM),
+            padx=(th.PAD * 4, th.PAD_SM) if is_user else (th.PAD_SM, th.PAD * 4),
+        )
+        card.grid_columnconfigure(0, weight=1)
+        self._msg_row += 1
+
+        # Role label
+        ctk.CTkLabel(
+            card, text=label, font=th.FONT_SMALL, text_color=color,
+            anchor="e" if is_user else "w",
+        ).grid(row=0, column=0, padx=th.PAD_SM, pady=(th.PAD_SM, 2),
+               sticky="e" if is_user else "w")
+
+        # Content
+        ctk.CTkLabel(
+            card, text=content, font=th.FONT_BODY, text_color=th.TEXT,
+            anchor="e" if is_user else "w",
+            wraplength=480, justify="right" if is_user else "left",
+        ).grid(row=1, column=0, padx=th.PAD_SM, pady=(0, th.PAD_SM),
+               sticky="e" if is_user else "w")
+
+        self.after(50, lambda: self.chat_scroll._parent_canvas.yview_moveto(1.0))
 
     def _post_system_message(self, msg: str):
         self._post_message("system", msg)
@@ -848,6 +916,44 @@ class InitializationScreen(ctk.CTkFrame):
             self.coord_done_btn.configure(state=state)
         if self.stage == "summary_ready" and not busy:
             self.confirm_gen_btn.configure(state="normal")
+
+        if busy:
+            # Determine flavor agent from status text
+            if "Director" in status:
+                self._flavor_agent = "director"
+            elif "Recorder" in status:
+                self._flavor_agent = "recorder"
+            else:
+                self._flavor_agent = "default"
+            self.loading_frame.grid()
+            self.loading_bar.start()
+            self._start_flavor_rotation()
+        else:
+            self._stop_flavor_rotation()
+            self.loading_bar.stop()
+            self.loading_frame.grid_remove()
+
+    def _start_flavor_rotation(self):
+        self._flavor_idx = 0
+        self._flavor_elapsed = 0
+        self._rotate_flavor()
+
+    def _rotate_flavor(self):
+        if not self._agent_running:
+            return
+        if self._flavor_elapsed >= 30000:
+            self.loading_flavor_label.configure(text=FLAVOR_WAIT_MSG)
+        else:
+            texts = FLAVOR_TEXTS.get(self._flavor_agent, FLAVOR_TEXTS["default"])
+            self.loading_flavor_label.configure(text=texts[self._flavor_idx % len(texts)])
+            self._flavor_idx += 1
+        self._flavor_elapsed += FLAVOR_INTERVAL_MS
+        self._flavor_after_id = self.after(FLAVOR_INTERVAL_MS, self._rotate_flavor)
+
+    def _stop_flavor_rotation(self):
+        if self._flavor_after_id:
+            self.after_cancel(self._flavor_after_id)
+            self._flavor_after_id = None
 
     def _auto_save_draft(self, stage: str, editor_output: str = "", recorder_draft=None):
         data = {

@@ -6,7 +6,7 @@ STRINGS = {
         # App
         "app_title": "시나플롯",
         "back_to_projects": "← 프로젝트 목록",
-        "language_toggle": "EN",
+        "language_toggle": "🌐 EN",
 
         # Project screen
         "existing_projects": "기존 프로젝트",
@@ -61,7 +61,7 @@ STRINGS = {
         # App
         "app_title": "Synaplot",
         "back_to_projects": "← Projects",
-        "language_toggle": "KO",
+        "language_toggle": "🌐 KO",
 
         # Project screen
         "existing_projects": "Existing Projects",

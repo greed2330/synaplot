@@ -85,8 +85,10 @@ class App(ctk.CTk):
 
         # Right: language toggle
         self._lang_btn = ctk.CTkButton(
-            bar, text=i18n.t("language_toggle"), width=44, height=28,
-            **th.btn_ghost({"font": th.FONT_SMALL}),
+            bar, text=i18n.t("language_toggle"), width=72, height=28,
+            fg_color=th.SURFACE2, hover_color=th.SURFACE3,
+            border_width=1, border_color=th.BORDER,
+            corner_radius=th.RADIUS_MD, text_color=th.TEXT2, font=th.FONT_SMALL,
             command=self._toggle_language
         )
         self._lang_btn.grid(row=0, column=2, padx=(0, th.PAD), pady=10, sticky="e")
