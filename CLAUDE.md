@@ -137,19 +137,38 @@ Avoid committing incomplete or broken states unless explicitly necessary.
 - If two features are implemented, create **two commits**.
 - If documentation changes are separate from code changes, commit them separately.
 
+### Branch Strategy
+
+```
+main
+└── dev
+    ├── feat/episode-management-room
+    ├── feat/settings-organization-room
+    ├── fix/revision-count-bug
+    └── ...
+```
+
+- **`main`** — stable only. Receives merges from `dev` when a milestone is complete.
+- **`dev`** — integration branch. All work branches are created from and merged back into `dev`.
+- **Work branches** — named after the type and scope of work, e.g. `feat/episode-management-room`, `fix/revision-count-bug`, `refactor/common-sidebar`. Use the same prefixes as commit messages (`feat/fix/refactor/docs/chore`).
+
 ### GitHub Usage
 
 The repository will be synchronized with **GitHub**.
 
-General workflow:
+Work branch workflow:
 
 ```
+git checkout dev
+git pull origin dev
+git checkout -b feat/your-feature
 
-implement feature
-→ verify behavior
-→ git commit
-→ git push
+... implement & commit ...
 
+git pull origin dev        ← sync before PR
+git push origin feat/your-feature
+→ open PR into dev
+→ merge
 ```
 
 Frequent small commits are preferred over large commits.
